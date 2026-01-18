@@ -1,0 +1,6 @@
+@HandyManBE_HostAddress = http://localhost:5164
+
+GET {{HandyManBE_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
