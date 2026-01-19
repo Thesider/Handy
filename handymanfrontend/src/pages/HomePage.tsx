@@ -9,6 +9,9 @@ export const HomePage = () => {
     const [workers, setWorkers] = useState<Worker[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [howItWorksTab, setHowItWorksTab] = useState<"customer" | "worker">(
+        "customer"
+    );
 
     useEffect(() => {
         const load = async () => {
@@ -57,6 +60,46 @@ export const HomePage = () => {
         }
         navigate(`/handymen?query=${encodeURIComponent(query)}`);
     };
+
+    const howItWorksSteps = useMemo(
+        () =>
+            howItWorksTab === "customer"
+                ? [
+                    {
+                        title: "1. Đăng yêu cầu",
+                        icon: "post_add",
+                        text: "Mô tả công việc, thời gian và khu vực bạn cần hỗ trợ.",
+                    },
+                    {
+                        title: "2. Chọn thợ phù hợp",
+                        icon: "person_search",
+                        text: "So sánh báo giá, đánh giá và chọn thợ tốt nhất.",
+                    },
+                    {
+                        title: "3. Hoàn thành & thanh toán",
+                        icon: "check_circle",
+                        text: "Thợ đến đúng hẹn, hoàn thành việc và thanh toán an toàn.",
+                    },
+                ]
+                : [
+                    {
+                        title: "1. Tạo hồ sơ",
+                        icon: "account_circle",
+                        text: "Hoàn thiện hồ sơ, kỹ năng và khu vực nhận việc của bạn.",
+                    },
+                    {
+                        title: "2. Nhận yêu cầu",
+                        icon: "notifications_active",
+                        text: "Xem yêu cầu phù hợp và gửi báo giá nhanh chóng.",
+                    },
+                    {
+                        title: "3. Làm việc & tăng thu nhập",
+                        icon: "paid",
+                        text: "Hoàn thành dịch vụ, nhận đánh giá tốt và tăng thu nhập.",
+                    },
+                ],
+        [howItWorksTab]
+    );
 
     return (
         <main className="flex flex-col">
@@ -156,32 +199,32 @@ export const HomePage = () => {
                     <div className="mb-12 text-center">
                         <h2 className="mb-4 text-3xl font-bold text-[#111418]">Cách hoạt động</h2>
                         <div className="inline-flex rounded-lg bg-gray-200 p-1">
-                            <button className="rounded-md bg-white px-6 py-2 text-sm font-bold text-[#111418] shadow-sm">
+                            <button
+                                type="button"
+                                onClick={() => setHowItWorksTab("customer")}
+                                aria-pressed={howItWorksTab === "customer"}
+                                className={`rounded-md px-6 py-2 text-sm font-bold shadow-sm transition-colors ${howItWorksTab === "customer"
+                                    ? "bg-white text-[#111418]"
+                                    : "text-gray-500 hover:text-[#111418]"
+                                    }`}
+                            >
                                 Khách hàng
                             </button>
-                            <button className="rounded-md px-6 py-2 text-sm font-medium text-gray-500 hover:text-[#111418]">
+                            <button
+                                type="button"
+                                onClick={() => setHowItWorksTab("worker")}
+                                aria-pressed={howItWorksTab === "worker"}
+                                className={`rounded-md px-6 py-2 text-sm font-bold shadow-sm transition-colors ${howItWorksTab === "worker"
+                                    ? "bg-white text-[#111418]"
+                                    : "text-gray-500 hover:text-[#111418]"
+                                    }`}
+                            >
                                 Thợ chuyên nghiệp
                             </button>
                         </div>
                     </div>
                     <div className="grid gap-8 md:grid-cols-3">
-                        {[
-                            {
-                                title: "1. Đăng yêu cầu",
-                                icon: "post_add",
-                                text: "Cho chúng tôi biết việc cần làm, thời gian và khu vực của bạn.",
-                            },
-                            {
-                                title: "2. Xem đề xuất",
-                                icon: "person_search",
-                                text: "So sánh báo giá, đọc đánh giá và chọn thợ phù hợp nhất.",
-                            },
-                            {
-                                title: "3. Hoàn thành",
-                                icon: "check_circle",
-                                text: "Thợ đến đúng hẹn và hoàn thành công việc. Thanh toán an toàn qua nền tảng.",
-                            },
-                        ].map((step) => (
+                        {howItWorksSteps.map((step) => (
                             <div key={step.title} className="flex flex-col items-center text-center">
                                 <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-white shadow-md">
                                     <span className="material-symbols-outlined text-5xl text-primary">
@@ -241,9 +284,6 @@ export const HomePage = () => {
                                                 {pro.rating}
                                             </div>
                                         </div>
-                                        <p className="mt-2 text-sm text-[#617589]">
-                                            {pro.yearsOfExperience}+ năm kinh nghiệm
-                                        </p>
                                         <div className="mt-4 flex items-center justify-between border-t border-dashed border-[#f0f2f4] pt-3">
                                             <span className="text-sm font-semibold text-[#111418]">
                                                 {formatVnd(pro.hourlyRate)}/giờ
@@ -279,7 +319,7 @@ export const HomePage = () => {
                         <p className="text-lg text-blue-100">
                             Tham gia cộng đồng thợ uy tín để nhận thêm khách hàng mỗi ngày.
                         </p>
-                        <div className="flex flex-col gap-4 sm:flex-row sm:justify-center md:justify-start">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:jusxstify-center md:justify-start">
                             <Link
                                 to="/auth/register/worker"
                                 className="rounded-lg bg-white px-8 py-3 text-base font-bold text-primary shadow-lg transition-transform hover:scale-105"

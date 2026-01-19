@@ -69,7 +69,7 @@ export const Navbar = () => {
                 ) : (
                     <NavLink
                         to="/auth/register"
-                        className="flex min-w-[84px] items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-600"
+                        className="flex min-w-[84px] items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-bold text-black transition-colors hover:bg-blue-600"
                     >
                         Sign Up
                     </NavLink>

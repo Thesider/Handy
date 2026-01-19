@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import { Button } from "../components/common/Button";
-import { Input } from "../components/common/Input";
+import { useEffect, useMemo, useState } from "react";
+import { HttpError } from "../api/httpClient";
 import {
     createAdminCustomer,
     createAdminService,
@@ -8,8 +7,11 @@ import {
     deleteAdminCustomer,
     deleteAdminService,
     deleteAdminWorker,
+    getAdminCustomerById,
     getAdminCustomers,
+    getAdminServiceById,
     getAdminServices,
+    getAdminWorkerById,
     getAdminWorkers,
     updateAdminCustomer,
     updateAdminService,
@@ -17,7 +19,11 @@ import {
 } from "../api/admin.api";
 import type { Customer } from "../features/admin/admin.types";
 import type { Service, Worker } from "../features/handyman/handyman.types";
-import styles from "./AdminPage.module.css";
+import { CustomerCrudSection } from "./admin/CustomerCrudSection";
+import { ServiceCrudSection } from "./admin/ServiceCrudSection";
+import { UserManagementSection } from "./admin/UserManagementSection";
+import { WorkerCrudSection } from "./admin/WorkerCrudSection";
+import type { RoleFilter, StatusFilter, UserRow } from "./admin/adminPage.types";
 
 export const AdminPage = () => {
     const [workers, setWorkers] = useState<Worker[]>([]);
@@ -26,16 +32,31 @@ export const AdminPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const [searchTerm, setSearchTerm] = useState("");
+    const [roleFilter, setRoleFilter] = useState<RoleFilter>("All Roles");
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>("All Status");
+
     const [editingWorkerId, setEditingWorkerId] = useState<number | null>(null);
     const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
     const [editingCustomerId, setEditingCustomerId] = useState<number | null>(null);
+
+    const [workerSubmitting, setWorkerSubmitting] = useState(false);
+    const [serviceSubmitting, setServiceSubmitting] = useState(false);
+    const [customerSubmitting, setCustomerSubmitting] = useState(false);
+
+    const [workerError, setWorkerError] = useState<string | null>(null);
+    const [serviceError, setServiceError] = useState<string | null>(null);
+    const [customerError, setCustomerError] = useState<string | null>(null);
+
+    const [workerFieldErrors, setWorkerFieldErrors] = useState<Record<string, string>>({});
+    const [serviceFieldErrors, setServiceFieldErrors] = useState<Record<string, string>>({});
+    const [customerFieldErrors, setCustomerFieldErrors] = useState<Record<string, string>>({});
 
     const [workerForm, setWorkerForm] = useState<Omit<Worker, "workerId">>({
         firstName: "",
         lastName: "",
         email: "",
         phoneNumber: "",
-        yearsOfExperience: 0,
         hourlyRate: 0,
         rating: 0,
         isAvailable: false,
@@ -52,6 +73,8 @@ export const AdminPage = () => {
     const [serviceForm, setServiceForm] = useState<Omit<Service, "serviceId">>({
         serviceName: "",
         serviceFee: 0,
+        minPrice: 0,
+        maxPrice: 0,
         totalJobs: 0,
     });
 
@@ -88,12 +111,13 @@ export const AdminPage = () => {
 
     const resetWorkerForm = () => {
         setEditingWorkerId(null);
+        setWorkerError(null);
+        setWorkerFieldErrors({});
         setWorkerForm({
             firstName: "",
             lastName: "",
             email: "",
             phoneNumber: "",
-            yearsOfExperience: 0,
             hourlyRate: 0,
             rating: 0,
             isAvailable: false,
@@ -110,15 +134,21 @@ export const AdminPage = () => {
 
     const resetServiceForm = () => {
         setEditingServiceId(null);
+        setServiceError(null);
+        setServiceFieldErrors({});
         setServiceForm({
             serviceName: "",
             serviceFee: 0,
+            minPrice: 0,
+            maxPrice: 0,
             totalJobs: 0,
         });
     };
 
     const resetCustomerForm = () => {
         setEditingCustomerId(null);
+        setCustomerError(null);
+        setCustomerFieldErrors({});
         setCustomerForm({
             firstName: "",
             lastName: "",
@@ -128,481 +158,375 @@ export const AdminPage = () => {
         });
     };
 
+    const extractErrorMessage = (err: unknown, fallback: string) => {
+        if (err instanceof HttpError) {
+            const data = err.data as { errors?: string[]; message?: string } | null;
+            if (data?.errors?.length) {
+                return data.errors.join(" ");
+            }
+            if (data?.message) {
+                return data.message;
+            }
+        }
+        if (err instanceof Error) {
+            return err.message;
+        }
+        return fallback;
+    };
+
+    const validateWorkerForm = () => {
+        const errors: Record<string, string> = {};
+        if (!workerForm.firstName.trim()) errors.firstName = "First name is required.";
+        if (!workerForm.lastName.trim()) errors.lastName = "Last name is required.";
+        if (!workerForm.email.trim()) {
+            errors.email = "Email is required.";
+        } else if (!/^\S+@\S+\.\S+$/.test(workerForm.email)) {
+            errors.email = "Enter a valid email address.";
+        }
+        if (!workerForm.phoneNumber.trim()) errors.phoneNumber = "Phone number is required.";
+        if (workerForm.hourlyRate < 0) errors.hourlyRate = "Hourly rate must be >= 0.";
+        if (workerForm.rating < 0 || workerForm.rating > 5) errors.rating = "Rating must be 0 - 5.";
+        if (!workerForm.address.street.trim()) errors["address.street"] = "Street is required.";
+        if (!workerForm.address.city.trim()) errors["address.city"] = "City is required.";
+        if (!workerForm.address.postalCode.trim()) errors["address.postalCode"] = "Postal code is required.";
+        return errors;
+    };
+
+    const validateServiceForm = () => {
+        const errors: Record<string, string> = {};
+        if (!serviceForm.serviceName.trim()) errors.serviceName = "Service name is required.";
+        if (serviceForm.serviceFee < 0) errors.serviceFee = "Service fee must be >= 0.";
+        if (serviceForm.minPrice < 0) errors.minPrice = "Min price must be >= 0.";
+        if (serviceForm.maxPrice < 0) errors.maxPrice = "Max price must be >= 0.";
+        if (serviceForm.maxPrice > 0 && serviceForm.minPrice > serviceForm.maxPrice) {
+            errors.maxPrice = "Max price must be >= min price.";
+        }
+        if (serviceForm.totalJobs < 0) errors.totalJobs = "Total jobs must be >= 0.";
+        return errors;
+    };
+
+    const validateCustomerForm = () => {
+        const errors: Record<string, string> = {};
+        if (!customerForm.firstName.trim()) errors.firstName = "First name is required.";
+        if (!customerForm.lastName.trim()) errors.lastName = "Last name is required.";
+        if (!customerForm.email.trim()) {
+            errors.email = "Email is required.";
+        } else if (!/^\S+@\S+\.\S+$/.test(customerForm.email)) {
+            errors.email = "Enter a valid email address.";
+        }
+        if (!customerForm.phoneNumber.trim()) errors.phoneNumber = "Phone number is required.";
+        if (!editingCustomerId && !(customerForm.password ?? "").trim()) {
+            errors.password = "Password is required for new customers.";
+        }
+        return errors;
+    };
+
     const handleWorkerSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (editingWorkerId) {
-            await updateAdminWorker(editingWorkerId, workerForm);
-        } else {
-            await createAdminWorker(workerForm);
+        setWorkerError(null);
+        const errors = validateWorkerForm();
+        if (Object.keys(errors).length) {
+            setWorkerFieldErrors(errors);
+            setWorkerError("Please fix the highlighted fields.");
+            return;
         }
-        resetWorkerForm();
-        loadAll();
+        setWorkerSubmitting(true);
+        setWorkerFieldErrors({});
+        try {
+            if (editingWorkerId) {
+                await updateAdminWorker(editingWorkerId, workerForm);
+            } else {
+                await createAdminWorker(workerForm);
+            }
+            resetWorkerForm();
+            loadAll();
+        } catch (err) {
+            setWorkerError(extractErrorMessage(err, "Unable to save worker."));
+        } finally {
+            setWorkerSubmitting(false);
+        }
     };
 
     const handleServiceSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (editingServiceId) {
-            await updateAdminService(editingServiceId, serviceForm);
-        } else {
-            await createAdminService(serviceForm);
+        setServiceError(null);
+        const errors = validateServiceForm();
+        if (Object.keys(errors).length) {
+            setServiceFieldErrors(errors);
+            setServiceError("Please fix the highlighted fields.");
+            return;
         }
-        resetServiceForm();
-        loadAll();
+        setServiceSubmitting(true);
+        setServiceFieldErrors({});
+        try {
+            if (editingServiceId) {
+                await updateAdminService(editingServiceId, serviceForm);
+            } else {
+                await createAdminService(serviceForm);
+            }
+            resetServiceForm();
+            loadAll();
+        } catch (err) {
+            setServiceError(extractErrorMessage(err, "Unable to save service."));
+        } finally {
+            setServiceSubmitting(false);
+        }
     };
 
     const handleCustomerSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (editingCustomerId) {
-            await updateAdminCustomer(editingCustomerId, customerForm);
-        } else {
-            await createAdminCustomer(customerForm);
+        setCustomerError(null);
+        const errors = validateCustomerForm();
+        if (Object.keys(errors).length) {
+            setCustomerFieldErrors(errors);
+            setCustomerError("Please fix the highlighted fields.");
+            return;
         }
-        resetCustomerForm();
+        setCustomerSubmitting(true);
+        setCustomerFieldErrors({});
+        try {
+            const { password, ...rest } = customerForm;
+            const customerPayload: Omit<Customer, "customerId"> =
+                editingCustomerId && !(password ?? "").trim()
+                    ? (rest as Omit<Customer, "customerId">)
+                    : { ...rest, password: password ?? "" };
+            if (editingCustomerId) {
+                await updateAdminCustomer(editingCustomerId, customerPayload);
+            } else {
+                await createAdminCustomer(customerPayload);
+            }
+            resetCustomerForm();
+            loadAll();
+        } catch (err) {
+            setCustomerError(extractErrorMessage(err, "Unable to save customer."));
+        } finally {
+            setCustomerSubmitting(false);
+        }
+    };
+
+    const userRows = useMemo(() => {
+        const workerRows = workers.map((worker) => ({
+            id: worker.workerId,
+            name: `${worker.firstName} ${worker.lastName}`.trim(),
+            email: worker.email,
+            role: "Worker" as const,
+            status: worker.isAvailable ? "Active" : "Pending",
+            joined: "—",
+            kind: "worker" as const,
+        }));
+        const customerRows = customers.map((customer) => ({
+            id: customer.customerId,
+            name: `${customer.firstName} ${customer.lastName}`.trim(),
+            email: customer.email,
+            role: "Customer" as const,
+            status: "Active",
+            joined: "—",
+            kind: "customer" as const,
+        }));
+        return [...workerRows, ...customerRows];
+    }, [workers, customers]);
+
+    const filteredRows = useMemo(() => {
+        const normalizedSearch = searchTerm.trim().toLowerCase();
+        return userRows.filter((row) => {
+            if (roleFilter === "Workers" && row.role !== "Worker") return false;
+            if (roleFilter === "Customers" && row.role !== "Customer") return false;
+            if (statusFilter !== "All Status" && row.status !== statusFilter) return false;
+            if (!normalizedSearch) return true;
+            return (
+                row.name.toLowerCase().includes(normalizedSearch) ||
+                row.email.toLowerCase().includes(normalizedSearch) ||
+                row.id.toString().includes(normalizedSearch)
+            );
+        });
+    }, [userRows, roleFilter, statusFilter, searchTerm]);
+
+    const pendingCount = userRows.filter((row) => row.status === "Pending").length;
+    const activeWorkers = workers.filter((worker) => worker.isAvailable).length;
+
+    const handleEditWorkerById = async (workerId: number) => {
+        setWorkerError(null);
+        setWorkerFieldErrors({});
+        try {
+            const worker = await getAdminWorkerById(workerId);
+            setEditingWorkerId(worker.workerId);
+            setWorkerForm({
+                firstName: worker.firstName,
+                lastName: worker.lastName,
+                email: worker.email,
+                phoneNumber: worker.phoneNumber,
+                hourlyRate: worker.hourlyRate,
+                rating: worker.rating,
+                isAvailable: worker.isAvailable,
+                address: worker.address,
+                workerProfileId: worker.workerProfileId ?? null,
+            });
+        } catch (err) {
+            setWorkerError(extractErrorMessage(err, "Unable to load worker details."));
+        }
+    };
+
+    const handleEditCustomerById = async (customerId: number) => {
+        setCustomerError(null);
+        setCustomerFieldErrors({});
+        try {
+            const customer = await getAdminCustomerById(customerId);
+            setEditingCustomerId(customer.customerId);
+            setCustomerForm({
+                firstName: customer.firstName,
+                lastName: customer.lastName,
+                email: customer.email,
+                phoneNumber: customer.phoneNumber,
+                password: "",
+            });
+        } catch (err) {
+            setCustomerError(extractErrorMessage(err, "Unable to load customer details."));
+        }
+    };
+
+    const handleEditServiceById = async (serviceId: number) => {
+        setServiceError(null);
+        setServiceFieldErrors({});
+        try {
+            const service = await getAdminServiceById(serviceId);
+            setEditingServiceId(service.serviceId);
+            setServiceForm({
+                serviceName: service.serviceName,
+                serviceFee: service.serviceFee,
+                minPrice: service.minPrice,
+                maxPrice: service.maxPrice,
+                totalJobs: service.totalJobs,
+            });
+        } catch (err) {
+            setServiceError(extractErrorMessage(err, "Unable to load service details."));
+        }
+    };
+
+    const handleEditUser = (row: UserRow) => {
+        if (row.kind === "worker") {
+            handleEditWorkerById(row.id);
+        }
+        if (row.kind === "customer") {
+            handleEditCustomerById(row.id);
+        }
+    };
+
+    const handleDeleteUser = async (row: UserRow) => {
+        if (row.kind === "worker") {
+            await deleteAdminWorker(row.id);
+        } else {
+            await deleteAdminCustomer(row.id);
+        }
         loadAll();
     };
 
     return (
-        <div className={styles.container}>
-            <h1>Admin dashboard</h1>
-            <p>Manage workers, services, and customer accounts in one place.</p>
-            {error ? <div className={styles.notice}>{error}</div> : null}
-            <a href="#activity">
-                <Button>Review latest activity</Button>
-            </a>
-            <div className={styles.grid}>
-                <div className={styles.card}>
-                    <h3>Overview</h3>
-                    <p>Track new bookings, users, and worker approvals.</p>
-                </div>
-                <div className={styles.card}>
-                    <h3>Workers</h3>
-                    <p>Approve profiles, monitor ratings, and update availability.</p>
-                </div>
-                <div className={styles.card}>
-                    <h3>Customers</h3>
-                    <p>Resolve support issues and monitor recent feedback.</p>
-                </div>
-            </div>
+        <div className="min-h-screen bg-background-light text-[#111418] dark:bg-background-dark dark:text-white">
+            <div className="flex h-screen overflow-hidden">
+                <aside className="hidden w-72 flex-shrink-0 border-r border-[#dbe0e6] bg-white dark:border-gray-800 dark:bg-[#111418] lg:flex">
+                    <div className="flex h-full w-full flex-col justify-between p-4">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex items-center gap-3 px-2 py-2">
+                                <div className="size-10 rounded-full bg-primary/20" />
+                                <div className="flex flex-col">
+                                    <h1 className="text-base font-bold">HandyAdmin</h1>
+                                    <p className="text-sm text-[#617589] dark:text-gray-400">Platform Manager</p>
+                                </div>
+                            </div>
+                            <div className="mt-4 flex flex-col gap-1">
+                                <button className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-[#111418] transition-colors hover:bg-background-light dark:text-gray-200 dark:hover:bg-gray-800">
+                                    <span className="material-symbols-outlined text-[#617589]">bar_chart</span>
+                                    Dashboard
+                                </button>
+                                <button className="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-3 text-sm font-bold text-primary">
+                                    <span className="material-symbols-outlined fill">group</span>
+                                    Users
+                                </button>
+                                <button className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-[#111418] transition-colors hover:bg-background-light dark:text-gray-200 dark:hover:bg-gray-800">
+                                    <span className="material-symbols-outlined text-[#617589]">work</span>
+                                    Jobs
+                                </button>
+                                <button className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-[#111418] transition-colors hover:bg-background-light dark:text-gray-200 dark:hover:bg-gray-800">
+                                    <span className="material-symbols-outlined text-[#617589]">payments</span>
+                                    Payments
+                                </button>
+                                <button className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-[#111418] transition-colors hover:bg-background-light dark:text-gray-200 dark:hover:bg-gray-800">
+                                    <span className="material-symbols-outlined text-[#617589]">settings</span>
+                                    Settings
+                                </button>
+                            </div>
+                        </div>
+                        <button className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-[#111418] transition-colors hover:bg-red-50 dark:text-gray-200 dark:hover:bg-red-900/10">
+                            <span className="material-symbols-outlined text-[#617589]">logout</span>
+                            Log Out
+                        </button>
+                    </div>
+                </aside>
 
-            <section id="activity" className={styles.section}>
-                <h2>Activity</h2>
-                <div className={styles.table}>
-                    <div className={styles.tableRow}>
-                        <strong>Type</strong>
-                        <strong>Details</strong>
-                        <strong>Status</strong>
-                    </div>
-                    <div className={styles.tableRow}>
-                        <span>Approvals</span>
-                        <span>No pending worker approvals</span>
-                        <span>Clear</span>
-                    </div>
-                </div>
-            </section>
-
-            <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                    <div>
-                        <h2>Workers</h2>
-                        <p>Update worker profiles and availability.</p>
-                    </div>
-                    <Button variant="ghost" onClick={resetWorkerForm}>
-                        Clear form
-                    </Button>
-                </div>
-                <form className={styles.form} onSubmit={handleWorkerSubmit}>
-                    <div className={styles.formRow}>
-                        <Input
-                            label="First name"
-                            value={workerForm.firstName}
-                            onChange={(event) =>
-                                setWorkerForm({ ...workerForm, firstName: event.target.value })
-                            }
-                        />
-                        <Input
-                            label="Last name"
-                            value={workerForm.lastName}
-                            onChange={(event) =>
-                                setWorkerForm({ ...workerForm, lastName: event.target.value })
-                            }
-                        />
-                    </div>
-                    <div className={styles.formRow}>
-                        <Input
-                            label="Email"
-                            type="email"
-                            value={workerForm.email}
-                            onChange={(event) =>
-                                setWorkerForm({ ...workerForm, email: event.target.value })
-                            }
-                        />
-                        <Input
-                            label="Phone"
-                            value={workerForm.phoneNumber}
-                            onChange={(event) =>
-                                setWorkerForm({ ...workerForm, phoneNumber: event.target.value })
-                            }
-                        />
-                    </div>
-                    <div className={styles.formRow}>
-                        <Input
-                            label="Years of experience"
-                            type="number"
-                            value={workerForm.yearsOfExperience}
-                            onChange={(event) =>
-                                setWorkerForm({
-                                    ...workerForm,
-                                    yearsOfExperience: Number(event.target.value),
-                                })
-                            }
-                        />
-                        <Input
-                            label="Hourly rate"
-                            type="number"
-                            value={workerForm.hourlyRate}
-                            onChange={(event) =>
-                                setWorkerForm({
-                                    ...workerForm,
-                                    hourlyRate: Number(event.target.value),
-                                })
-                            }
-                        />
-                    </div>
-                    <div className={styles.formRow}>
-                        <Input
-                            label="Rating"
-                            type="number"
-                            value={workerForm.rating}
-                            onChange={(event) =>
-                                setWorkerForm({
-                                    ...workerForm,
-                                    rating: Number(event.target.value),
-                                })
-                            }
-                        />
-                        <label className={styles.checkbox}>
-                            <input
-                                type="checkbox"
-                                checked={workerForm.isAvailable}
-                                onChange={(event) =>
-                                    setWorkerForm({
-                                        ...workerForm,
-                                        isAvailable: event.target.checked,
-                                    })
-                                }
+                <main className="flex flex-1 flex-col overflow-hidden">
+                    <div className="flex-1 overflow-y-auto">
+                        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-6 py-8">
+                            <UserManagementSection
+                                loading={loading}
+                                error={error}
+                                userRows={userRows}
+                                filteredRows={filteredRows}
+                                pendingCount={pendingCount}
+                                activeWorkers={activeWorkers}
+                                searchTerm={searchTerm}
+                                setSearchTerm={setSearchTerm}
+                                roleFilter={roleFilter}
+                                setRoleFilter={setRoleFilter}
+                                statusFilter={statusFilter}
+                                setStatusFilter={setStatusFilter}
+                                onEditUser={handleEditUser}
+                                onDeleteUser={handleDeleteUser}
                             />
-                            Available
-                        </label>
-                    </div>
-                    <Input
-                        label="Street"
-                        value={workerForm.address.street}
-                        onChange={(event) =>
-                            setWorkerForm({
-                                ...workerForm,
-                                address: { ...workerForm.address, street: event.target.value },
-                            })
-                        }
-                    />
-                    <div className={styles.formRow}>
-                        <Input
-                            label="City"
-                            value={workerForm.address.city}
-                            onChange={(event) =>
-                                setWorkerForm({
-                                    ...workerForm,
-                                    address: { ...workerForm.address, city: event.target.value },
-                                })
-                            }
-                        />
-                        <Input
-                            label="State"
-                            value={workerForm.address.state ?? ""}
-                            onChange={(event) =>
-                                setWorkerForm({
-                                    ...workerForm,
-                                    address: { ...workerForm.address, state: event.target.value },
-                                })
-                            }
-                        />
-                    </div>
-                    <div className={styles.formRow}>
-                        <Input
-                            label="Postal code"
-                            value={workerForm.address.postalCode}
-                            onChange={(event) =>
-                                setWorkerForm({
-                                    ...workerForm,
-                                    address: {
-                                        ...workerForm.address,
-                                        postalCode: event.target.value,
-                                    },
-                                })
-                            }
-                        />
-                        <Input
-                            label="Country"
-                            value={workerForm.address.country ?? ""}
-                            onChange={(event) =>
-                                setWorkerForm({
-                                    ...workerForm,
-                                    address: { ...workerForm.address, country: event.target.value },
-                                })
-                            }
-                        />
-                    </div>
-                    <div className={styles.formActions}>
-                        <Button type="submit">
-                            {editingWorkerId ? "Update worker" : "Create worker"}
-                        </Button>
-                    </div>
-                </form>
-                {loading ? (
-                    <p className={styles.notice}>Loading workers...</p>
-                ) : (
-                    <div className={styles.table}>
-                        <div className={styles.tableRow}>
-                            <strong>Name</strong>
-                            <strong>Email</strong>
-                            <strong>Status</strong>
-                        </div>
-                        {workers.map((worker) => (
-                            <div key={worker.workerId} className={styles.tableRow}>
-                                <span>
-                                    {worker.firstName} {worker.lastName}
-                                </span>
-                                <span>{worker.email}</span>
-                                <span className={worker.isAvailable ? styles.success : styles.muted}>
-                                    {worker.isAvailable ? "Available" : "Unavailable"}
-                                </span>
-                                <div className={styles.rowActions}>
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => {
-                                            setEditingWorkerId(worker.workerId);
-                                            setWorkerForm({
-                                                firstName: worker.firstName,
-                                                lastName: worker.lastName,
-                                                email: worker.email,
-                                                phoneNumber: worker.phoneNumber,
-                                                yearsOfExperience: worker.yearsOfExperience,
-                                                hourlyRate: worker.hourlyRate,
-                                                rating: worker.rating,
-                                                isAvailable: worker.isAvailable,
-                                                address: worker.address,
-                                                workerProfileId: worker.workerProfileId ?? null,
-                                            });
-                                        }}
-                                    >
-                                        Edit
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => deleteAdminWorker(worker.workerId).then(loadAll)}
-                                    >
-                                        Delete
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </section>
 
-            <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                    <div>
-                        <h2>Services</h2>
-                        <p>Keep pricing and job counts up to date.</p>
-                    </div>
-                    <Button variant="ghost" onClick={resetServiceForm}>
-                        Clear form
-                    </Button>
-                </div>
-                <form className={styles.form} onSubmit={handleServiceSubmit}>
-                    <div className={styles.formRow}>
-                        <Input
-                            label="Service name"
-                            value={serviceForm.serviceName}
-                            onChange={(event) =>
-                                setServiceForm({ ...serviceForm, serviceName: event.target.value })
-                            }
-                        />
-                        <Input
-                            label="Service fee"
-                            type="number"
-                            value={serviceForm.serviceFee}
-                            onChange={(event) =>
-                                setServiceForm({
-                                    ...serviceForm,
-                                    serviceFee: Number(event.target.value),
-                                })
-                            }
-                        />
-                    </div>
-                    <Input
-                        label="Total jobs"
-                        type="number"
-                        value={serviceForm.totalJobs}
-                        onChange={(event) =>
-                            setServiceForm({
-                                ...serviceForm,
-                                totalJobs: Number(event.target.value),
-                            })
-                        }
-                    />
-                    <div className={styles.formActions}>
-                        <Button type="submit">
-                            {editingServiceId ? "Update service" : "Create service"}
-                        </Button>
-                    </div>
-                </form>
-                {loading ? (
-                    <p className={styles.notice}>Loading services...</p>
-                ) : (
-                    <div className={styles.table}>
-                        <div className={styles.tableRow}>
-                            <strong>Name</strong>
-                            <strong>Fee</strong>
-                            <strong>Jobs</strong>
-                        </div>
-                        {services.map((service) => (
-                            <div key={service.serviceId} className={styles.tableRow}>
-                                <span>{service.serviceName}</span>
-                                <span>{service.serviceFee}</span>
-                                <span>{service.totalJobs}</span>
-                                <div className={styles.rowActions}>
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => {
-                                            setEditingServiceId(service.serviceId);
-                                            setServiceForm({
-                                                serviceName: service.serviceName,
-                                                serviceFee: service.serviceFee,
-                                                totalJobs: service.totalJobs,
-                                            });
-                                        }}
-                                    >
-                                        Edit
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => deleteAdminService(service.serviceId).then(loadAll)}
-                                    >
-                                        Delete
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </section>
+                            <section id="manage-users" className="grid gap-6">
+                                <WorkerCrudSection
+                                    workerForm={workerForm}
+                                    setWorkerForm={setWorkerForm}
+                                    workerFieldErrors={workerFieldErrors}
+                                    workerSubmitting={workerSubmitting}
+                                    workerError={workerError}
+                                    editingWorkerId={editingWorkerId}
+                                    onSubmit={handleWorkerSubmit}
+                                    onReset={resetWorkerForm}
+                                />
 
-            <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                    <div>
-                        <h2>Customers</h2>
-                        <p>Manage customer contact details.</p>
-                    </div>
-                    <Button variant="ghost" onClick={resetCustomerForm}>
-                        Clear form
-                    </Button>
-                </div>
-                <form className={styles.form} onSubmit={handleCustomerSubmit}>
-                    <div className={styles.formRow}>
-                        <Input
-                            label="First name"
-                            value={customerForm.firstName}
-                            onChange={(event) =>
-                                setCustomerForm({ ...customerForm, firstName: event.target.value })
-                            }
-                        />
-                        <Input
-                            label="Last name"
-                            value={customerForm.lastName}
-                            onChange={(event) =>
-                                setCustomerForm({ ...customerForm, lastName: event.target.value })
-                            }
-                        />
-                    </div>
-                    <div className={styles.formRow}>
-                        <Input
-                            label="Email"
-                            type="email"
-                            value={customerForm.email}
-                            onChange={(event) =>
-                                setCustomerForm({ ...customerForm, email: event.target.value })
-                            }
-                        />
-                        <Input
-                            label="Phone"
-                            value={customerForm.phoneNumber}
-                            onChange={(event) =>
-                                setCustomerForm({
-                                    ...customerForm,
-                                    phoneNumber: event.target.value,
-                                })
-                            }
-                        />
-                    </div>
-                    <Input
-                        label={editingCustomerId ? "Password (optional)" : "Password"}
-                        type="password"
-                        value={customerForm.password ?? ""}
-                        onChange={(event) =>
-                            setCustomerForm({ ...customerForm, password: event.target.value })
-                        }
-                    />
-                    <div className={styles.formActions}>
-                        <Button type="submit">
-                            {editingCustomerId ? "Update customer" : "Create customer"}
-                        </Button>
-                    </div>
-                </form>
-                {loading ? (
-                    <p className={styles.notice}>Loading customers...</p>
-                ) : (
-                    <div className={styles.table}>
-                        <div className={styles.tableRow}>
-                            <strong>Name</strong>
-                            <strong>Email</strong>
-                            <strong>Phone</strong>
+                                <ServiceCrudSection
+                                    serviceForm={serviceForm}
+                                    setServiceForm={setServiceForm}
+                                    serviceFieldErrors={serviceFieldErrors}
+                                    serviceSubmitting={serviceSubmitting}
+                                    serviceError={serviceError}
+                                    editingServiceId={editingServiceId}
+                                    services={services}
+                                    onSubmit={handleServiceSubmit}
+                                    onReset={resetServiceForm}
+                                    onEditService={handleEditServiceById}
+                                    onDeleteService={(serviceId) => deleteAdminService(serviceId).then(loadAll)}
+                                />
+
+                                <CustomerCrudSection
+                                    customerForm={customerForm}
+                                    setCustomerForm={setCustomerForm}
+                                    customerFieldErrors={customerFieldErrors}
+                                    customerSubmitting={customerSubmitting}
+                                    customerError={customerError}
+                                    editingCustomerId={editingCustomerId}
+                                    customers={customers}
+                                    onSubmit={handleCustomerSubmit}
+                                    onReset={resetCustomerForm}
+                                    onEditCustomer={handleEditCustomerById}
+                                    onDeleteCustomer={(customerId) => deleteAdminCustomer(customerId).then(loadAll)}
+                                />
+                            </section>
                         </div>
-                        {customers.map((customer) => (
-                            <div key={customer.customerId} className={styles.tableRow}>
-                                <span>
-                                    {customer.firstName} {customer.lastName}
-                                </span>
-                                <span>{customer.email}</span>
-                                <span>{customer.phoneNumber}</span>
-                                <div className={styles.rowActions}>
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => {
-                                            setEditingCustomerId(customer.customerId);
-                                            setCustomerForm({
-                                                firstName: customer.firstName,
-                                                lastName: customer.lastName,
-                                                email: customer.email,
-                                                phoneNumber: customer.phoneNumber,
-                                                password: "",
-                                            });
-                                        }}
-                                    >
-                                        Edit
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => deleteAdminCustomer(customer.customerId).then(loadAll)}
-                                    >
-                                        Delete
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
                     </div>
-                )}
-            </section>
+                </main>
+            </div>
         </div>
     );
 };

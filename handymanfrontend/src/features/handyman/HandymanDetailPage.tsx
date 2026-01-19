@@ -69,7 +69,6 @@ export const HandymanDetailPage = () => {
                         {worker.address.city}, {worker.address.state}
                     </p>
                     <div className={styles.badges}>
-                        <span>{worker.yearsOfExperience}+ yrs experience</span>
                         <span>{worker.rating}★ rating</span>
                         <span>{formatCurrency(worker.hourlyRate)}/hr</span>
                     </div>

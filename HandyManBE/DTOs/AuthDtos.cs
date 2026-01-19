@@ -53,9 +53,6 @@ namespace HandyManBE.DTOs
         [Phone]
         public string PhoneNumber { get; set; }
 
-        [Range(0, 100)]
-        public int YearsOfExperience { get; set; }
-
         [Range(0, 1000000)]
         public decimal HourlyRate { get; set; }
 

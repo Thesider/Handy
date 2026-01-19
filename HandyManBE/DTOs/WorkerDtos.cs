@@ -22,9 +22,6 @@ namespace HandyManBE.DTOs
         [StringLength(30)]
         public string PhoneNumber { get; set; }
 
-        [Range(0, 100)]
-        public int YearsOfExperience { get; set; } = 0;
-
         public bool IsAvailable { get; set; } = false;
 
         [Range(0, 1000000)]
@@ -42,7 +39,6 @@ namespace HandyManBE.DTOs
     public class WorkerDto
     {
         public int WorkerId { get; set; }
-        public int YearsOfExperience { get; set; }
         public bool IsAvailable { get; set; }
         public decimal HourlyRate { get; set; }
         public decimal Rating { get; set; }

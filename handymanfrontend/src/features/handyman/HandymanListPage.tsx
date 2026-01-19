@@ -16,7 +16,6 @@ export const HandymanListPage = () => {
     const [serviceWorkerIds, setServiceWorkerIds] = useState<number[] | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [maxPrice, setMaxPrice] = useState(0);
-    const [minExperience, setMinExperience] = useState(0);
     const [viewMode, setViewMode] = useState<"list" | "map">("list");
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 6;
@@ -25,18 +24,11 @@ export const HandymanListPage = () => {
         () => (workers.length ? Math.max(...workers.map((w) => w.hourlyRate)) : 0),
         [workers]
     );
-    const maxExperience = useMemo(
-        () =>
-            workers.length ? Math.max(...workers.map((w) => w.yearsOfExperience)) : 0,
-        [workers]
-    );
-
     const hasActiveFilters =
         availability ||
         minRating > 0 ||
         serviceId !== "" ||
         searchTerm.trim().length > 0 ||
-        minExperience > 0 ||
         (maxHourlyRate > 0 && maxPrice < maxHourlyRate);
 
     useEffect(() => {
@@ -49,7 +41,6 @@ export const HandymanListPage = () => {
         setAvailability(false);
         setMinRating(0);
         setServiceId("");
-        setMinExperience(0);
         setSearchTerm("");
         setMaxPrice(maxHourlyRate);
     };
@@ -116,7 +107,6 @@ export const HandymanListPage = () => {
                 return false;
             }
             if (maxPrice > 0 && worker.hourlyRate > maxPrice) return false;
-            if (minExperience > 0 && worker.yearsOfExperience < minExperience) return false;
 
             if (normalizedSearch) {
                 const fullName = `${worker.firstName} ${worker.lastName}`.toLowerCase();
@@ -133,7 +123,6 @@ export const HandymanListPage = () => {
         minRating,
         serviceWorkerIds,
         maxPrice,
-        minExperience,
         searchTerm,
     ]);
 
@@ -158,7 +147,7 @@ export const HandymanListPage = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [availability, minRating, serviceId, searchTerm, maxPrice, minExperience]);
+    }, [availability, minRating, serviceId, searchTerm, maxPrice]);
 
     if (loading) {
         return (
@@ -212,8 +201,8 @@ export const HandymanListPage = () => {
                                 type="button"
                                 onClick={() => setViewMode("list")}
                                 className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${viewMode === "list"
-                                        ? "bg-white text-slate-900 shadow-sm"
-                                        : "text-slate-500"
+                                    ? "bg-white text-slate-900 shadow-sm"
+                                    : "text-slate-500"
                                     }`}
                             >
                                 <span className="material-symbols-outlined text-[20px]">
@@ -225,8 +214,8 @@ export const HandymanListPage = () => {
                                 type="button"
                                 onClick={() => setViewMode("map")}
                                 className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${viewMode === "map"
-                                        ? "bg-white text-slate-900 shadow-sm"
-                                        : "text-slate-500"
+                                    ? "bg-white text-slate-900 shadow-sm"
+                                    : "text-slate-500"
                                     }`}
                             >
                                 <span className="material-symbols-outlined text-[20px]">map</span>
@@ -327,21 +316,6 @@ export const HandymanListPage = () => {
                             </div>
 
                             <hr className="border-slate-100" />
-
-                            <div>
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm font-medium text-slate-900">Kinh nghiệm</p>
-                                    <span className="text-xs text-slate-500">{minExperience} năm</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min={0}
-                                    max={maxExperience || 1}
-                                    value={minExperience}
-                                    onChange={(event) => setMinExperience(Number(event.target.value))}
-                                    className="mt-3 w-full accent-primary"
-                                />
-                            </div>
 
                             <div>
                                 <label className="text-sm font-medium text-slate-900" htmlFor="search">
@@ -460,7 +434,6 @@ export const HandymanListPage = () => {
                                                             </span>
                                                             {worker.rating}
                                                         </span>
-                                                        <span>• {worker.yearsOfExperience}+ năm</span>
                                                         <span>• {worker.address.city}</span>
                                                     </div>
                                                 </div>
@@ -481,8 +454,8 @@ export const HandymanListPage = () => {
                                                 </Link>
                                                 <span
                                                     className={`text-sm font-medium ${worker.isAvailable
-                                                            ? "text-emerald-600"
-                                                            : "text-slate-400"
+                                                        ? "text-emerald-600"
+                                                        : "text-slate-400"
                                                         }`}
                                                 >
                                                     {worker.isAvailable ? "Sẵn sàng" : "Đang bận"}
@@ -511,8 +484,8 @@ export const HandymanListPage = () => {
                                                     type="button"
                                                     onClick={() => setCurrentPage(page)}
                                                     className={`flex size-9 items-center justify-center rounded-lg border text-sm font-medium ${page === currentPage
-                                                            ? "border-primary bg-primary text-white"
-                                                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                                        ? "border-primary bg-primary text-white"
+                                                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                                                         }`}
                                                 >
                                                     {page}

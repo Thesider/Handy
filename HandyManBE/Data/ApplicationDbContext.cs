@@ -46,6 +46,8 @@ namespace HandyManBE.Data
             {
                 entity.HasKey(s => s.ServiceId);
                 entity.Property(s => s.ServiceFee).HasColumnType("decimal(18,2)");
+                entity.Property(s => s.MinPrice).HasColumnType("decimal(18,2)");
+                entity.Property(s => s.MaxPrice).HasColumnType("decimal(18,2)");
 
                 entity.HasMany(s => s.WorkerServices)
                     .WithOne(ws => ws.Service)
@@ -99,6 +101,8 @@ namespace HandyManBE.Data
                     ServiceId = 1,
                     ServiceName = "Plumbing",
                     ServiceFee = 25m,
+                    MinPrice = 15m,
+                    MaxPrice = 50m,
                     TotalJobs = 120
                 },
                 new Service
@@ -106,6 +110,8 @@ namespace HandyManBE.Data
                     ServiceId = 2,
                     ServiceName = "Electrical",
                     ServiceFee = 30m,
+                    MinPrice = 20m,
+                    MaxPrice = 75m,
                     TotalJobs = 85
                 }
             );
@@ -118,7 +124,6 @@ namespace HandyManBE.Data
                     LastName = "Doe",
                     Email = "john.doe@handyman.local",
                     PhoneNumber = "+1-555-0101",
-                    YearsOfExperience = 5,
                     IsAvailable = true,
                     HourlyRate = 20m,
                     Rating = 4.5m,
@@ -132,7 +137,6 @@ namespace HandyManBE.Data
                     LastName = "Smith",
                     Email = "jane.smith@handyman.local",
                     PhoneNumber = "+1-555-0102",
-                    YearsOfExperience = 8,
                     IsAvailable = false,
                     HourlyRate = 28m,
                     Rating = 4.8m,
