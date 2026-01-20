@@ -5,8 +5,8 @@ export const Navbar = () => {
     const { isAuthenticated, logout, user } = useAuth();
     const getLinkClass = ({ isActive }: { isActive: boolean }) =>
         [
-            "text-sm font-medium leading-normal text-[#111418] hover:text-primary",
-            isActive ? "text-primary" : "",
+            "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium leading-normal transition-colors",
+            isActive ? "bg-blue-100 text-primary" : "text-[#111418] hover:bg-blue-50 hover:text-primary",
         ].join(" ");
 
     const navLinks = (() => {
@@ -43,7 +43,7 @@ export const Navbar = () => {
         <header className="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#f0f2f4] bg-white px-10 py-3">
             <div className="flex items-center gap-4">
                 <NavLink to="/" className="flex items-center gap-2 no-underline" aria-label="Go to home">
-                    <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-blue-100 text-primary">
                         <span className="material-symbols-outlined text-2xl">handyman</span>
                     </div>
                     <h2 className="text-lg font-bold leading-tight tracking-[-0.015em] text-[#111418]">
@@ -69,7 +69,7 @@ export const Navbar = () => {
                 ) : (
                     <NavLink
                         to="/auth/register"
-                        className="flex min-w-[84px] items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-600"
+                        className="flex min-w-[84px] items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-bold text-black transition-colors hover:bg-blue-600 hover:text-white"
                     >
                         Sign Up
                     </NavLink>

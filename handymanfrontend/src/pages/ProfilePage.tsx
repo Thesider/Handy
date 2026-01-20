@@ -213,8 +213,8 @@ export const ProfilePage = () => {
     };
 
     return (
-        <div className="flex min-h-screen overflow-hidden bg-background-light text-text-primary-light dark:bg-background-dark dark:text-text-primary-dark">
-            <aside className="w-72 flex-shrink-0 border-r border-slate-800 bg-slate-900 text-white">
+        <div className="flex min-h-screen overflow-hidden bg-slate-50 text-slate-900">
+            <aside className="w-72 flex-shrink-0 border-r border-slate-200 bg-white">
                 <div className="flex h-full flex-col justify-between p-6">
                     <div className="flex flex-col gap-8">
                         <div className="flex items-center gap-3">
@@ -223,187 +223,96 @@ export const ProfilePage = () => {
                                 aria-hidden="true"
                             />
                             <div className="flex flex-col">
-                                <h1 className="text-base font-bold leading-normal text-white">
-                                    {name}
-                                </h1>
-                                <p className="text-sm font-normal leading-normal text-slate-300">
-                                    {role} Account
-                                </p>
+                                <h1 className="text-base font-bold">{name}</h1>
+                                <p className="text-sm text-slate-500">{role} Account</p>
                             </div>
                         </div>
 
                         <nav className="flex flex-col gap-2">
                             <Link
-                                className="flex items-center gap-3 rounded-lg bg-white/10 px-3 py-2.5 text-white transition-colors"
+                                className="flex items-center gap-3 rounded-lg bg-blue-50 text-primary px-3 py-2.5  transition-colors"
                                 to="/profile"
                             >
-                                <span className="material-symbols-outlined fill">dashboard</span>
-                                <span className="text-sm font-medium leading-normal">Dashboard</span>
+                                <span className="material-symbols-outlined">dashboard</span>
+                                <span className="text-sm font-medium">Dashboard</span>
                             </Link>
-                            <Link
-                                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
-                                to="/bookings"
-                            >
-                                <span className="material-symbols-outlined">calendar_month</span>
-                                <span className="text-sm font-medium leading-normal">My Bookings</span>
-                            </Link>
-                            <button
-                                type="button"
-                                className="group flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
-                            >
-                                <span className="flex items-center gap-3">
-                                    <span className="material-symbols-outlined">chat_bubble</span>
-                                    <span className="text-sm font-medium leading-normal">Messages</span>
-                                </span>
-                                <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-white">
-                                    2
-                                </span>
-                            </button>
-                            <button
-                                type="button"
-                                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
-                            >
-                                <span className="material-symbols-outlined">credit_card</span>
-                                <span className="text-sm font-medium leading-normal">Payment Methods</span>
-                            </button>
-                            <button
-                                type="button"
-                                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
-                            >
-                                <span className="material-symbols-outlined">settings</span>
-                                <span className="text-sm font-medium leading-normal">Settings</span>
-                            </button>
+                            {[
+                                ["calendar_month", "My Bookings", "/bookings"],
+                                ["chat_bubble", "Messages", "/messages"],
+                                ["credit_card", "Payment Methods", "/payments"],
+                                ["settings", "Settings", "/settings"],
+                            ].map(([icon, label, to]) => (
+                                <Link
+                                    key={label}
+                                    to={to}
+                                    className="flex items-center gap-3 rounded-lg px-3 py-2.5
+                 text-slate-600 transition-colors
+                 hover:bg-slate-100 hover:text-slate-900"
+                                >
+                                    <span className="material-symbols-outlined">{icon}</span>
+                                    <span className="text-sm font-medium">{label}</span>
+                                </Link>
+                            ))}
                         </nav>
                     </div>
                     <button
-                        type="button"
                         onClick={logout}
-                        className="mt-auto flex h-10 w-full items-center gap-3 rounded-lg px-3 text-slate-300 transition-colors hover:bg-red-500/20 hover:text-red-200"
+                        className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-500 hover:bg-red-50 hover:text-red-600"
                     >
                         <span className="material-symbols-outlined">logout</span>
-                        <span className="truncate text-sm font-medium">Log Out</span>
+                        <span className="text-sm font-medium">Log Out</span>
                     </button>
                 </div>
             </aside>
 
-            <main className="flex h-full flex-1 flex-col overflow-y-auto">
-                <div className="layout-content-container mx-auto flex w-full max-w-[1200px] flex-col gap-8 p-6 md:p-8 lg:p-10">
-                    <div className="flex flex-wrap items-end justify-between gap-4">
-                        <div className="flex flex-col gap-1">
-                            <p className="text-3xl font-black leading-tight tracking-[-0.033em] text-text-primary-light dark:text-white md:text-4xl">
-                                Good morning, {greetingName}
-                            </p>
-                            <p className="text-base font-normal leading-normal text-text-secondary-light dark:text-text-secondary-dark">
+            <main className="flex flex-1 flex-col overflow-y-auto">
+                <div className="mx-auto w-full max-w-[1200px] p-6 space-y-10">
+                    <div className="flex items-end justify-between">
+                        <div>
+                            <h1 className="text-4xl font-black">Good morning, {greetingName}</h1>
+                            <p className="text-slate-600">
                                 Manage your bookings and find your next pro.
                             </p>
                         </div>
                         <Link
-                            className="flex h-10 items-center justify-center overflow-hidden rounded-lg bg-primary px-6 text-sm font-bold leading-normal tracking-[0.015em] text-white shadow-sm transition-colors hover:bg-blue-600"
                             to="/handymen"
+                            className="rounded-lg bg-primary px-6 py-2 border border-primary text-sm font-bold text-black hover:bg-blue-600"
                         >
-                            <span className="truncate">Book a Service</span>
+                            Book a Service
                         </Link>
                     </div>
 
-                    <section className="flex flex-col gap-4">
-                        <h2 className="text-[22px] font-bold leading-tight text-text-primary-light dark:text-white">
-                            Active Bookings
-                        </h2>
-                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                            <div className="flex flex-col gap-4 rounded-xl border border-transparent bg-surface-light p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-gray-800 dark:bg-surface-dark dark:shadow-none sm:flex-row">
-                                <div
-                                    className={`aspect-video w-full shrink-0 rounded-lg bg-cover bg-center sm:aspect-square sm:w-40 ${styles.bookingImagePlumbing}`}
-                                    aria-hidden="true"
-                                />
-                                <div className="flex flex-1 flex-col justify-between gap-3">
-                                    <div>
-                                        <div className="mb-1 flex items-start justify-between">
-                                            <p className="text-lg font-bold leading-tight text-text-primary-light dark:text-white">
-                                                Plumbing Repair
-                                            </p>
-                                            <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-900/30 dark:text-blue-300">
-                                                In-Progress
-                                            </span>
-                                        </div>
-                                        <div className="mt-1 flex items-center gap-1.5 text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                                            <span className="material-symbols-outlined text-[18px]">
-                                                person
-                                            </span>
-                                            <span>Mike D.</span>
-                                        </div>
-                                        <div className="mt-0.5 flex items-center gap-1.5 text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                                            <span className="material-symbols-outlined text-[18px]">
-                                                schedule
-                                            </span>
-                                            <span>Arriving in 15 mins</span>
-                                        </div>
+                    <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div className="flex gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                            <div
+                                className={`h-32 w-40 rounded-lg bg-cover bg-center ${styles.bookingImagePlumbing}`}
+                            />
+                            <div className="flex flex-1 flex-col justify-between">
+                                <div>
+                                    <div className="flex justify-between">
+                                        <h3 className="font-bold">Plumbing Repair</h3>
+                                        <span className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                                            In Progress
+                                        </span>
                                     </div>
-                                    <div className="mt-2 flex gap-2">
-                                        <button
-                                            type="button"
-                                            className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-background-light px-3 text-sm font-medium text-text-primary-light transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-                                        >
-                                            <span className="material-symbols-outlined text-[18px]">chat</span>
-                                            <span>Message</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-background-light px-3 text-sm font-medium text-text-primary-light transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-                                        >
-                                            <span className="material-symbols-outlined text-[18px]">map</span>
-                                            <span>Track</span>
-                                        </button>
-                                    </div>
+                                    <p className="mt-1 text-sm text-slate-600">Arriving in 15 mins</p>
                                 </div>
-                            </div>
-
-                            <div className="flex flex-col gap-4 rounded-xl border border-transparent bg-surface-light p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-gray-800 dark:bg-surface-dark dark:shadow-none sm:flex-row">
-                                <div
-                                    className={`aspect-video w-full shrink-0 rounded-lg bg-cover bg-center sm:aspect-square sm:w-40 ${styles.bookingImageFurniture}`}
-                                    aria-hidden="true"
-                                />
-                                <div className="flex flex-1 flex-col justify-between gap-3">
-                                    <div>
-                                        <div className="mb-1 flex items-start justify-between">
-                                            <p className="text-lg font-bold leading-tight text-text-primary-light dark:text-white">
-                                                Furniture Assembly
-                                            </p>
-                                            <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10 dark:bg-gray-700 dark:text-gray-300">
-                                                Scheduled
-                                            </span>
-                                        </div>
-                                        <div className="mt-1 flex items-center gap-1.5 text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                                            <span className="material-symbols-outlined text-[18px]">
-                                                person
-                                            </span>
-                                            <span>Sarah J.</span>
-                                        </div>
-                                        <div className="mt-0.5 flex items-center gap-1.5 text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                                            <span className="material-symbols-outlined text-[18px]">
-                                                event
-                                            </span>
-                                            <span>Tomorrow, 2:00 PM</span>
-                                        </div>
-                                    </div>
-                                    <div className="mt-2 flex gap-2">
-                                        <button
-                                            type="button"
-                                            className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-background-light px-3 text-sm font-medium text-text-primary-light transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-                                        >
-                                            <span className="material-symbols-outlined text-[18px]">
-                                                edit_calendar
-                                            </span>
-                                            <span>Reschedule</span>
-                                        </button>
-                                    </div>
+                                <div className="flex gap-2">
+                                    <button className="flex-1 rounded-lg bg-slate-100 py-2 text-sm font-medium hover:bg-slate-200">
+                                        Message
+                                    </button>
+                                    <button className="flex-1 rounded-lg bg-slate-100 py-2 text-sm font-medium hover:bg-slate-200">
+                                        Track
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </section>
 
+
                     <section className="mt-2 flex flex-col gap-4">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-[22px] font-bold leading-tight text-text-primary-light dark:text-white">
+                            <h2 className="text-[22px] font-bold leading-tight text-text-primary-light text-black">
                                 Recommended for you
                             </h2>
                             <Link className="text-sm font-semibold text-primary hover:underline" to="/handymen">
@@ -411,7 +320,7 @@ export const ProfilePage = () => {
                             </Link>
                         </div>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            <div className="group flex flex-col overflow-hidden rounded-xl border border-transparent bg-surface-light shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-surface-dark dark:shadow-none">
+                            <div className="group flex flex-col overflow-hidden rounded-xl border border-transparent border border-slate-200 dark:border-slate-700 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-surface-dark dark:shadow-none">
                                 <div className="relative h-32 bg-gray-100">
                                     <div
                                         className={`absolute inset-0 bg-cover bg-center opacity-80 transition-opacity group-hover:opacity-100 ${styles.proCardBgElectric}`}
@@ -427,18 +336,18 @@ export const ProfilePage = () => {
                                 <div className="flex flex-col gap-2 px-4 pb-4 pt-8">
                                     <div className="flex items-start justify-between">
                                         <div>
-                                            <h3 className="font-bold text-text-primary-light dark:text-white">
+                                            <h3 className="font-bold text-text-primary-light text-black">
                                                 Mark T.
                                             </h3>
                                             <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
                                                 Master Electrician
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-1 rounded bg-yellow-50 px-1.5 py-0.5 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
+                                        <div className="flex items-center gap-1 rounded-md bg-yellow-100 px-1.5 py-0.5 text-yellow-800">
                                             <span className="material-symbols-outlined fill text-[16px]">
                                                 star
                                             </span>
-                                            <span className="text-xs font-bold">4.9</span>
+                                            <span className="text-xs font-bold text-black">4.9</span>
                                         </div>
                                     </div>
                                     <div className="mt-1 flex items-center gap-2 text-sm">
@@ -451,14 +360,14 @@ export const ProfilePage = () => {
                                     </div>
                                     <button
                                         type="button"
-                                        className="mt-3 h-9 w-full rounded-lg bg-primary/10 text-sm font-bold text-primary transition-colors hover:bg-primary/20"
+                                        className="mt-3 h-9 w-full rounded-lg bg-blue-100 text-sm font-bold text-primary transition-colors hover:bg-blue-200"
                                     >
                                         Book Now
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="group flex flex-col overflow-hidden rounded-xl border border-transparent bg-surface-light shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-surface-dark dark:shadow-none">
+                            <div className="group flex flex-col overflow-hidden rounded-xl border border-transparent border border-slate-200 dark:border-slate-700 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-surface-dark dark:shadow-none">
                                 <div className="relative h-32 bg-gray-100">
                                     <div
                                         className={`absolute inset-0 bg-cover bg-center opacity-80 transition-opacity group-hover:opacity-100 ${styles.proCardBgWood}`}
@@ -474,18 +383,18 @@ export const ProfilePage = () => {
                                 <div className="flex flex-col gap-2 px-4 pb-4 pt-8">
                                     <div className="flex items-start justify-between">
                                         <div>
-                                            <h3 className="font-bold text-text-primary-light dark:text-white">
+                                            <h3 className="font-bold text-text-primary-light text-black">
                                                 David L.
                                             </h3>
                                             <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
                                                 Carpenter
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-1 rounded bg-yellow-50 px-1.5 py-0.5 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
+                                        <div className="flex items-center gap-1 rounded-md bg-yellow-100 px-1.5 py-0.5 text-yellow-800">
                                             <span className="material-symbols-outlined fill text-[16px]">
                                                 star
                                             </span>
-                                            <span className="text-xs font-bold">4.8</span>
+                                            <span className="text-xs font-bold text-black">4.8</span>
                                         </div>
                                     </div>
                                     <div className="mt-1 flex items-center gap-2 text-sm">
@@ -498,14 +407,14 @@ export const ProfilePage = () => {
                                     </div>
                                     <button
                                         type="button"
-                                        className="mt-3 h-9 w-full rounded-lg bg-primary/10 text-sm font-bold text-primary transition-colors hover:bg-primary/20"
+                                        className="mt-3 h-9 w-full rounded-lg bg-blue-100 text-sm font-bold text-primary transition-colors hover:bg-blue-200"
                                     >
                                         Book Now
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="group flex flex-col overflow-hidden rounded-xl border border-transparent bg-surface-light shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-surface-dark dark:shadow-none">
+                            <div className="group flex flex-col overflow-hidden rounded-xl border border-transparent border border-slate-200 dark:border-slate-700 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-surface-dark dark:shadow-none">
                                 <div className="relative h-32 bg-gray-100">
                                     <div
                                         className={`absolute inset-0 bg-cover bg-center opacity-80 transition-opacity group-hover:opacity-100 ${styles.proCardBgLeaves}`}
@@ -521,18 +430,18 @@ export const ProfilePage = () => {
                                 <div className="flex flex-col gap-2 px-4 pb-4 pt-8">
                                     <div className="flex items-start justify-between">
                                         <div>
-                                            <h3 className="font-bold text-text-primary-light dark:text-white">
+                                            <h3 className="font-bold text-text-primary-light text-black">
                                                 Emily R.
                                             </h3>
                                             <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
                                                 Landscaper
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-1 rounded bg-yellow-50 px-1.5 py-0.5 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
+                                        <div className="flex items-center gap-1 rounded-md bg-yellow-100 px-1.5 py-0.5 text-yellow-800">
                                             <span className="material-symbols-outlined fill text-[16px]">
                                                 star
                                             </span>
-                                            <span className="text-xs font-bold">5.0</span>
+                                            <span className="text-xs font-bold text-black">5.0</span>
                                         </div>
                                     </div>
                                     <div className="mt-1 flex items-center gap-2 text-sm">
@@ -545,14 +454,14 @@ export const ProfilePage = () => {
                                     </div>
                                     <button
                                         type="button"
-                                        className="mt-3 h-9 w-full rounded-lg bg-primary/10 text-sm font-bold text-primary transition-colors hover:bg-primary/20"
+                                        className="mt-3 h-9 w-full rounded-lg bg-blue-100 text-sm font-bold text-primary transition-colors hover:bg-blue-200"
                                     >
                                         Book Now
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="group flex flex-col overflow-hidden rounded-xl border border-transparent bg-surface-light shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-surface-dark dark:shadow-none">
+                            <div className="group flex flex-col overflow-hidden rounded-xl border border-transparent border border-slate-200 dark:border-slate-700 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-surface-dark dark:shadow-none">
                                 <div className="relative h-32 bg-gray-100">
                                     <div
                                         className={`absolute inset-0 bg-cover bg-center opacity-80 transition-opacity group-hover:opacity-100 ${styles.proCardBgPaint}`}
@@ -568,18 +477,18 @@ export const ProfilePage = () => {
                                 <div className="flex flex-col gap-2 px-4 pb-4 pt-8">
                                     <div className="flex items-start justify-between">
                                         <div>
-                                            <h3 className="font-bold text-text-primary-light dark:text-white">
+                                            <h3 className="font-bold text-text-primary-light text-black">
                                                 John K.
                                             </h3>
                                             <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
                                                 Painter
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-1 rounded bg-yellow-50 px-1.5 py-0.5 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
+                                        <div className="flex items-center gap-1 rounded-md bg-yellow-100 px-1.5 py-0.5 text-yellow-800">
                                             <span className="material-symbols-outlined fill text-[16px]">
                                                 star
                                             </span>
-                                            <span className="text-xs font-bold">4.7</span>
+                                            <span className="text-xs font-bold text-black">4.7</span>
                                         </div>
                                     </div>
                                     <div className="mt-1 flex items-center gap-2 text-sm">
@@ -592,7 +501,7 @@ export const ProfilePage = () => {
                                     </div>
                                     <button
                                         type="button"
-                                        className="mt-3 h-9 w-full rounded-lg bg-primary/10 text-sm font-bold text-primary transition-colors hover:bg-primary/20"
+                                        className="mt-3 h-9 w-full rounded-lg bg-blue-100 text-sm font-bold text-primary transition-colors hover:bg-blue-200"
                                     >
                                         Book Now
                                     </button>
@@ -626,7 +535,7 @@ export const ProfilePage = () => {
                             </div>
                         )}
                         <form
-                            className="grid gap-4 rounded-xl border border-transparent bg-surface-light p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-gray-800 dark:bg-surface-dark dark:shadow-none md:grid-cols-2"
+                            className="grid gap-4 rounded-xl border border-transparent border border-slate-200 dark:border-slate-700 p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-gray-800 dark:bg-surface-dark dark:shadow-none md:grid-cols-2"
                             onSubmit={handleSubmit}
                         >
                             <label className="flex flex-col gap-2 text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">
