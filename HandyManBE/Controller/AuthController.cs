@@ -89,7 +89,6 @@ namespace HandyManBE.Controller
                 LastName = request.LastName,
                 Email = request.Email,
                 PhoneNumber = request.PhoneNumber,
-                YearsOfExperience = request.YearsOfExperience,
                 HourlyRate = request.HourlyRate,
                 IsAvailable = false,
                 Rating = 0,

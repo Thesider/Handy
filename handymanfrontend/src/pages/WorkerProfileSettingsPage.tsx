@@ -10,7 +10,6 @@ const emptyWorker: Worker = {
     lastName: "",
     email: "",
     phoneNumber: "",
-    yearsOfExperience: 0,
     hourlyRate: 0,
     rating: 0,
     isAvailable: false,
@@ -152,17 +151,6 @@ export const WorkerProfileSettingsPage = () => {
                                 type="tel"
                                 value={form.phoneNumber}
                                 onChange={(event) => handleChange("phoneNumber", event.target.value)}
-                                className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                            />
-                        </label>
-                        <label className="flex flex-col gap-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-                            Years of experience
-                            <input
-                                type="number"
-                                value={form.yearsOfExperience}
-                                onChange={(event) =>
-                                    handleChange("yearsOfExperience", Number(event.target.value))
-                                }
                                 className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                             />
                         </label>
