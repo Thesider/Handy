@@ -5,7 +5,7 @@ export const Footer = () => {
                 <div className="grid grid-cols-2 gap-8 pb-12 md:grid-cols-4">
                     <div className="col-span-2 md:col-span-1">
                         <div className="mb-4 flex items-center gap-2">
-                            <div className="flex size-6 items-center justify-center rounded bg-primary/10 text-primary">
+                            <div className="flex size-6 items-center justify-center rounded bg-blue-100 text-primary">
                                 <span className="material-symbols-outlined text-lg">handyman</span>
                             </div>
                             <h2 className="text-base font-bold text-[#111418]">HandyHub</h2>

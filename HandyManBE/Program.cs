@@ -64,6 +64,7 @@ builder.Services.AddScoped<HandyManBE.Services.IWorkerService, HandyManBE.Servic
 builder.Services.AddScoped<HandyManBE.Services.IServiceAppService, HandyManBE.Services.ServiceAppService>();
 builder.Services.AddScoped<HandyManBE.Services.IBookingService, HandyManBE.Services.BookingAppService>();
 builder.Services.AddScoped<HandyManBE.Services.IReviewService, HandyManBE.Services.ReviewAppService>();
+builder.Services.AddScoped<HandyManBE.Services.IJobGigService, HandyManBE.Services.JobGigService>();
 
 var app = builder.Build();
 

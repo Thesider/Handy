@@ -16,6 +16,9 @@ export const HandymanListPage = () => {
     const [serviceWorkerIds, setServiceWorkerIds] = useState<number[] | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [maxPrice, setMaxPrice] = useState(0);
+    const [minExperience, setMinExperience] = useState(0);
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     const [viewMode, setViewMode] = useState<"list" | "map">("list");
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 6;
@@ -29,6 +32,9 @@ export const HandymanListPage = () => {
         minRating > 0 ||
         serviceId !== "" ||
         searchTerm.trim().length > 0 ||
+        minExperience > 0 ||
+        startDate !== "" ||
+        endDate !== "" ||
         (maxHourlyRate > 0 && maxPrice < maxHourlyRate);
 
     useEffect(() => {
@@ -42,6 +48,8 @@ export const HandymanListPage = () => {
         setMinRating(0);
         setServiceId("");
         setSearchTerm("");
+        setStartDate("");
+        setEndDate("");
         setMaxPrice(maxHourlyRate);
     };
 
@@ -124,6 +132,8 @@ export const HandymanListPage = () => {
         serviceWorkerIds,
         maxPrice,
         searchTerm,
+        startDate,
+        endDate,
     ]);
 
     const totalPages = Math.max(1, Math.ceil(filteredWorkers.length / pageSize));
@@ -330,6 +340,30 @@ export const HandymanListPage = () => {
                                     className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                                 />
                             </div>
+
+                            <hr className="border-slate-100" />
+
+                            <div className="flex flex-col gap-3">
+                                <p className="text-sm font-medium text-slate-900">Thời gian rảnh</p>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase font-bold text-slate-400">Từ ngày</label>
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase font-bold text-slate-400">Đến ngày</label>
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </aside>
 
@@ -405,61 +439,77 @@ export const HandymanListPage = () => {
                                 {pagedWorkers.map((worker) => (
                                     <div
                                         key={worker.workerId}
-                                        className="group flex flex-col gap-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-lg sm:flex-row"
+                                        className="group relative flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 sm:flex-row"
                                     >
                                         <div className="relative flex-shrink-0">
-                                            <div className="flex size-24 items-center justify-center rounded-lg bg-blue-100 text-primary sm:size-32">
-                                                <span className="material-symbols-outlined text-5xl">
-                                                    handyman
+                                            <div className="flex size-24 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 text-primary transition-transform duration-300 group-hover:scale-105 sm:size-32">
+                                                <span className="material-symbols-outlined text-4xl sm:text-5xl">
+                                                    face
                                                 </span>
                                             </div>
-                                            <div className="absolute -bottom-2 -right-2 rounded-full border border-slate-100 bg-white p-1 shadow-sm">
-                                                <div className="flex size-6 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                                            <div className="absolute -bottom-2 -right-2 rounded-full border border-white bg-white p-1 shadow-sm">
+                                                <div className="flex size-6 items-center justify-center rounded-full bg-blue-100 text-blue-600" title="Verified Pro">
                                                     <span className="material-symbols-outlined text-[16px]">
                                                         verified
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex flex-1 flex-col gap-2">
+                                        <div className="flex flex-1 flex-col justify-between gap-3">
                                             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                                 <div>
-                                                    <h3 className="text-lg font-bold text-slate-900">
-                                                        {worker.firstName} {worker.lastName}
-                                                    </h3>
-                                                    <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                                                        <span className="flex items-center gap-1">
-                                                            <span className="material-symbols-outlined text-amber-400 text-[18px]">
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-primary">
+                                                            {worker.firstName} {worker.lastName}
+                                                        </h3>
+                                                        {worker.isAvailable && (
+                                                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                                                                Sẵn sàng
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                                                        <span className="flex items-center gap-1 rounded-md bg-slate-50 px-2 py-1">
+                                                            <span className="material-symbols-outlined text-amber-400 text-[18px] filled">
                                                                 star
                                                             </span>
-                                                            {worker.rating}
+                                                            <span className="font-semibold text-slate-700">{worker.rating}</span>
                                                         </span>
-                                                        <span>• {worker.address.city}</span>
+                                                        <span className="flex items-center gap-1">
+                                                            <span className="material-symbols-outlined text-[18px]">work_history</span>
+                                                            {worker.yearsOfExperience} năm exp
+                                                        </span>
+                                                        <span className="flex items-center gap-1">
+                                                            <span className="material-symbols-outlined text-[18px]">location_on</span>
+                                                            {worker.address.city}
+                                                        </span>
                                                     </div>
                                                 </div>
                                                 <div className="text-left sm:text-right">
                                                     <p className="text-2xl font-black text-slate-900">
                                                         {formatVnd(worker.hourlyRate)}
-                                                        <span className="text-sm font-medium text-slate-500">/giờ</span>
                                                     </p>
-                                                    <p className="text-xs text-slate-500">Giá tham khảo</p>
+                                                    <p className="text-xs font-medium text-slate-500">Giá / giờ</p>
                                                 </div>
                                             </div>
-                                            <div className="mt-auto flex items-center gap-4">
-                                                <Link
-                                                    to={`/handymen/${worker.workerId}`}
-                                                    className="rounded-lg bg-primary px-6 py-2 text-sm font-semibold text-white hover:bg-blue-600"
-                                                >
-                                                    Xem hồ sơ
-                                                </Link>
+
+                                            <div className="flex items-center justify-end gap-3 pt-2">
                                                 <span
-                                                    className={`text-sm font-medium ${worker.isAvailable
-                                                        ? "text-emerald-600"
+                                                    className={`text-sm font-medium transition-opacity ${worker.isAvailable
+                                                        ? "text-emerald-600 opacity-0 group-hover:opacity-100"
                                                         : "text-slate-400"
                                                         }`}
                                                 >
-                                                    {worker.isAvailable ? "Sẵn sàng" : "Đang bận"}
+                                                    {worker.isAvailable ? "Có thể đặt ngay" : "Đang bận"}
                                                 </span>
+                                                <Link
+                                                    to={`/handymen/${worker.workerId}`}
+                                                    className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary hover:shadow-lg hover:shadow-primary/20 active:scale-95"
+                                                >
+                                                    Xem hồ sơ
+                                                    <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                                                </Link>
                                             </div>
                                         </div>
                                     </div>

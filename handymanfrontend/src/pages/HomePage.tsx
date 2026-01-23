@@ -290,7 +290,7 @@ export const HomePage = () => {
                                             </span>
                                             <Link
                                                 to="/handymen"
-                                                className="rounded bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-white"
+                                                className="rounded bg-blue-100 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-white"
                                             >
                                                 Xem hồ sơ
                                             </Link>
@@ -304,7 +304,13 @@ export const HomePage = () => {
             </section>
 
             <section className="relative overflow-hidden bg-primary px-4 py-20 text-white md:px-10 lg:px-40">
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=2940&auto=format&fit=crop')] bg-cover bg-center opacity-10" />
+                <div
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{
+                        backgroundImage:
+                            "linear-gradient(rgba(30,58,138,0.85), rgba(30,58,138,0.85)), url('https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=2940&auto=format&fit=crop')",
+                    }}
+                />
                 <div className="relative mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-10 md:flex-row">
                     <div className="flex flex-1 flex-col gap-6 text-center md:text-left">
                         <div className="flex items-center justify-center gap-2 rounded-full bg-white/20 px-4 py-1 text-sm font-medium backdrop-blur-sm md:w-fit md:justify-start">
@@ -322,7 +328,7 @@ export const HomePage = () => {
                         <div className="flex flex-col gap-4 sm:flex-row sm:jusxstify-center md:justify-start">
                             <Link
                                 to="/auth/register/worker"
-                                className="rounded-lg bg-white px-8 py-3 text-base font-bold text-primary shadow-lg transition-transform hover:scale-105"
+                                className="rounded-lg bg-white px-8 py-3 text-base font-bold text-black shadow-lg transition-transform hover:scale-105"
                             >
                                 Trở thành thợ
                             </Link>
@@ -363,7 +369,7 @@ export const HomePage = () => {
                                         <span className="material-symbols-outlined text-green-500">
                                             monetization_on
                                         </span>
-                                        <span>Earned $1,240</span>
+                                        <span>Kiếm được 30.000.000đ</span>
                                     </div>
                                 </div>
                             </div>

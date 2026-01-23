@@ -19,17 +19,12 @@ import {
 } from "../api/admin.api";
 import type { Customer } from "../features/admin/admin.types";
 import type { Service, Worker } from "../features/handyman/handyman.types";
-import { CustomerCrudSection } from "./admin/CustomerCrudSection";
-import { ServiceCrudSection } from "./admin/ServiceCrudSection";
-import { UserManagementSection } from "./admin/UserManagementSection";
-import { WorkerCrudSection } from "./admin/WorkerCrudSection";
-import type { RoleFilter, StatusFilter, UserRow } from "./admin/adminPage.types";
+import { AdminDashboardShell } from "../components/layout/AdminDashboardShell";
 
 export const AdminPage = () => {
     const [workers, setWorkers] = useState<Worker[]>([]);
     const [services, setServices] = useState<Service[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const [searchTerm, setSearchTerm] = useState("");
@@ -88,7 +83,6 @@ export const AdminPage = () => {
 
     const loadAll = async () => {
         try {
-            setLoading(true);
             const [workersData, servicesData, customersData] = await Promise.all([
                 getAdminWorkers(),
                 getAdminServices(),
@@ -101,7 +95,6 @@ export const AdminPage = () => {
         } catch {
             setError("Unable to load admin data.");
         } finally {
-            setLoading(false);
         }
     };
 
@@ -223,15 +216,6 @@ export const AdminPage = () => {
 
     const handleWorkerSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        setWorkerError(null);
-        const errors = validateWorkerForm();
-        if (Object.keys(errors).length) {
-            setWorkerFieldErrors(errors);
-            setWorkerError("Please fix the highlighted fields.");
-            return;
-        }
-        setWorkerSubmitting(true);
-        setWorkerFieldErrors({});
         try {
             if (editingWorkerId) {
                 await updateAdminWorker(editingWorkerId, workerForm);
@@ -240,24 +224,13 @@ export const AdminPage = () => {
             }
             resetWorkerForm();
             loadAll();
-        } catch (err) {
-            setWorkerError(extractErrorMessage(err, "Unable to save worker."));
-        } finally {
-            setWorkerSubmitting(false);
+        } catch (e) {
+            setError("Failed to save worker.");
         }
     };
 
     const handleServiceSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        setServiceError(null);
-        const errors = validateServiceForm();
-        if (Object.keys(errors).length) {
-            setServiceFieldErrors(errors);
-            setServiceError("Please fix the highlighted fields.");
-            return;
-        }
-        setServiceSubmitting(true);
-        setServiceFieldErrors({});
         try {
             if (editingServiceId) {
                 await updateAdminService(editingServiceId, serviceForm);
@@ -266,267 +239,403 @@ export const AdminPage = () => {
             }
             resetServiceForm();
             loadAll();
-        } catch (err) {
-            setServiceError(extractErrorMessage(err, "Unable to save service."));
-        } finally {
-            setServiceSubmitting(false);
+        } catch (e) {
+            setError("Failed to save service.");
         }
     };
 
     const handleCustomerSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        setCustomerError(null);
-        const errors = validateCustomerForm();
-        if (Object.keys(errors).length) {
-            setCustomerFieldErrors(errors);
-            setCustomerError("Please fix the highlighted fields.");
-            return;
-        }
-        setCustomerSubmitting(true);
-        setCustomerFieldErrors({});
         try {
-            const { password, ...rest } = customerForm;
-            const customerPayload: Omit<Customer, "customerId"> =
-                editingCustomerId && !(password ?? "").trim()
-                    ? (rest as Omit<Customer, "customerId">)
-                    : { ...rest, password: password ?? "" };
             if (editingCustomerId) {
-                await updateAdminCustomer(editingCustomerId, customerPayload);
+                await updateAdminCustomer(editingCustomerId, customerForm);
             } else {
-                await createAdminCustomer(customerPayload);
+                await createAdminCustomer(customerForm);
             }
             resetCustomerForm();
             loadAll();
-        } catch (err) {
-            setCustomerError(extractErrorMessage(err, "Unable to save customer."));
-        } finally {
-            setCustomerSubmitting(false);
+        } catch (e) {
+            setError("Failed to save customer.");
         }
-    };
-
-    const userRows = useMemo(() => {
-        const workerRows = workers.map((worker) => ({
-            id: worker.workerId,
-            name: `${worker.firstName} ${worker.lastName}`.trim(),
-            email: worker.email,
-            role: "Worker" as const,
-            status: worker.isAvailable ? "Active" : "Pending",
-            joined: "—",
-            kind: "worker" as const,
-        }));
-        const customerRows = customers.map((customer) => ({
-            id: customer.customerId,
-            name: `${customer.firstName} ${customer.lastName}`.trim(),
-            email: customer.email,
-            role: "Customer" as const,
-            status: "Active",
-            joined: "—",
-            kind: "customer" as const,
-        }));
-        return [...workerRows, ...customerRows];
-    }, [workers, customers]);
-
-    const filteredRows = useMemo(() => {
-        const normalizedSearch = searchTerm.trim().toLowerCase();
-        return userRows.filter((row) => {
-            if (roleFilter === "Workers" && row.role !== "Worker") return false;
-            if (roleFilter === "Customers" && row.role !== "Customer") return false;
-            if (statusFilter !== "All Status" && row.status !== statusFilter) return false;
-            if (!normalizedSearch) return true;
-            return (
-                row.name.toLowerCase().includes(normalizedSearch) ||
-                row.email.toLowerCase().includes(normalizedSearch) ||
-                row.id.toString().includes(normalizedSearch)
-            );
-        });
-    }, [userRows, roleFilter, statusFilter, searchTerm]);
-
-    const pendingCount = userRows.filter((row) => row.status === "Pending").length;
-    const activeWorkers = workers.filter((worker) => worker.isAvailable).length;
-
-    const handleEditWorkerById = async (workerId: number) => {
-        setWorkerError(null);
-        setWorkerFieldErrors({});
-        try {
-            const worker = await getAdminWorkerById(workerId);
-            setEditingWorkerId(worker.workerId);
-            setWorkerForm({
-                firstName: worker.firstName,
-                lastName: worker.lastName,
-                email: worker.email,
-                phoneNumber: worker.phoneNumber,
-                hourlyRate: worker.hourlyRate,
-                rating: worker.rating,
-                isAvailable: worker.isAvailable,
-                address: worker.address,
-                workerProfileId: worker.workerProfileId ?? null,
-            });
-        } catch (err) {
-            setWorkerError(extractErrorMessage(err, "Unable to load worker details."));
-        }
-    };
-
-    const handleEditCustomerById = async (customerId: number) => {
-        setCustomerError(null);
-        setCustomerFieldErrors({});
-        try {
-            const customer = await getAdminCustomerById(customerId);
-            setEditingCustomerId(customer.customerId);
-            setCustomerForm({
-                firstName: customer.firstName,
-                lastName: customer.lastName,
-                email: customer.email,
-                phoneNumber: customer.phoneNumber,
-                password: "",
-            });
-        } catch (err) {
-            setCustomerError(extractErrorMessage(err, "Unable to load customer details."));
-        }
-    };
-
-    const handleEditServiceById = async (serviceId: number) => {
-        setServiceError(null);
-        setServiceFieldErrors({});
-        try {
-            const service = await getAdminServiceById(serviceId);
-            setEditingServiceId(service.serviceId);
-            setServiceForm({
-                serviceName: service.serviceName,
-                serviceFee: service.serviceFee,
-                minPrice: service.minPrice,
-                maxPrice: service.maxPrice,
-                totalJobs: service.totalJobs,
-            });
-        } catch (err) {
-            setServiceError(extractErrorMessage(err, "Unable to load service details."));
-        }
-    };
-
-    const handleEditUser = (row: UserRow) => {
-        if (row.kind === "worker") {
-            handleEditWorkerById(row.id);
-        }
-        if (row.kind === "customer") {
-            handleEditCustomerById(row.id);
-        }
-    };
-
-    const handleDeleteUser = async (row: UserRow) => {
-        if (row.kind === "worker") {
-            await deleteAdminWorker(row.id);
-        } else {
-            await deleteAdminCustomer(row.id);
-        }
-        loadAll();
     };
 
     return (
-        <div className="min-h-screen bg-background-light text-[#111418] dark:bg-background-dark dark:text-white">
-            <div className="flex h-screen overflow-hidden">
-                <aside className="hidden w-72 flex-shrink-0 border-r border-[#dbe0e6] bg-white dark:border-gray-800 dark:bg-[#111418] lg:flex">
-                    <div className="flex h-full w-full flex-col justify-between p-4">
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center gap-3 px-2 py-2">
-                                <div className="size-10 rounded-full bg-primary/20" />
-                                <div className="flex flex-col">
-                                    <h1 className="text-base font-bold">HandyAdmin</h1>
-                                    <p className="text-sm text-[#617589] dark:text-gray-400">Platform Manager</p>
-                                </div>
-                            </div>
-                            <div className="mt-4 flex flex-col gap-1">
-                                <button className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-[#111418] transition-colors hover:bg-background-light dark:text-gray-200 dark:hover:bg-gray-800">
-                                    <span className="material-symbols-outlined text-[#617589]">bar_chart</span>
-                                    Dashboard
-                                </button>
-                                <button className="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-3 text-sm font-bold text-primary">
-                                    <span className="material-symbols-outlined fill">group</span>
-                                    Users
-                                </button>
-                                <button className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-[#111418] transition-colors hover:bg-background-light dark:text-gray-200 dark:hover:bg-gray-800">
-                                    <span className="material-symbols-outlined text-[#617589]">work</span>
-                                    Jobs
-                                </button>
-                                <button className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-[#111418] transition-colors hover:bg-background-light dark:text-gray-200 dark:hover:bg-gray-800">
-                                    <span className="material-symbols-outlined text-[#617589]">payments</span>
-                                    Payments
-                                </button>
-                                <button className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-[#111418] transition-colors hover:bg-background-light dark:text-gray-200 dark:hover:bg-gray-800">
-                                    <span className="material-symbols-outlined text-[#617589]">settings</span>
-                                    Settings
-                                </button>
-                            </div>
-                        </div>
-                        <button className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-[#111418] transition-colors hover:bg-red-50 dark:text-gray-200 dark:hover:bg-red-900/10">
-                            <span className="material-symbols-outlined text-[#617589]">logout</span>
-                            Log Out
-                        </button>
+        <AdminDashboardShell>
+            <div id="overview" className="flex flex-col gap-8">
+                <header>
+                    <h1 className="text-4xl font-black text-slate-900">Admin Dashboard</h1>
+                    <p className="text-slate-500 mt-1">Manage workers, services, and customer accounts in one place.</p>
+                </header>
+
+                {error && (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                        {error}
                     </div>
-                </aside>
+                )}
 
-                <main className="flex flex-1 flex-col overflow-hidden">
-                    <div className="flex-1 overflow-y-auto">
-                        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-6 py-8">
-                            <UserManagementSection
-                                loading={loading}
-                                error={error}
-                                userRows={userRows}
-                                filteredRows={filteredRows}
-                                pendingCount={pendingCount}
-                                activeWorkers={activeWorkers}
-                                searchTerm={searchTerm}
-                                setSearchTerm={setSearchTerm}
-                                roleFilter={roleFilter}
-                                setRoleFilter={setRoleFilter}
-                                statusFilter={statusFilter}
-                                setStatusFilter={setStatusFilter}
-                                onEditUser={handleEditUser}
-                                onDeleteUser={handleDeleteUser}
-                            />
-
-                            <section id="manage-users" className="grid gap-6">
-                                <WorkerCrudSection
-                                    workerForm={workerForm}
-                                    setWorkerForm={setWorkerForm}
-                                    workerFieldErrors={workerFieldErrors}
-                                    workerSubmitting={workerSubmitting}
-                                    workerError={workerError}
-                                    editingWorkerId={editingWorkerId}
-                                    onSubmit={handleWorkerSubmit}
-                                    onReset={resetWorkerForm}
-                                />
-
-                                <ServiceCrudSection
-                                    serviceForm={serviceForm}
-                                    setServiceForm={setServiceForm}
-                                    serviceFieldErrors={serviceFieldErrors}
-                                    serviceSubmitting={serviceSubmitting}
-                                    serviceError={serviceError}
-                                    editingServiceId={editingServiceId}
-                                    services={services}
-                                    onSubmit={handleServiceSubmit}
-                                    onReset={resetServiceForm}
-                                    onEditService={handleEditServiceById}
-                                    onDeleteService={(serviceId) => deleteAdminService(serviceId).then(loadAll)}
-                                />
-
-                                <CustomerCrudSection
-                                    customerForm={customerForm}
-                                    setCustomerForm={setCustomerForm}
-                                    customerFieldErrors={customerFieldErrors}
-                                    customerSubmitting={customerSubmitting}
-                                    customerError={customerError}
-                                    editingCustomerId={editingCustomerId}
-                                    customers={customers}
-                                    onSubmit={handleCustomerSubmit}
-                                    onReset={resetCustomerForm}
-                                    onEditCustomer={handleEditCustomerById}
-                                    onDeleteCustomer={(customerId) => deleteAdminCustomer(customerId).then(loadAll)}
-                                />
-                            </section>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Workers</p>
+                            <span className="material-symbols-outlined text-primary bg-blue-50 p-2 rounded-lg text-[24px]">engineering</span>
                         </div>
+                        <p className="text-3xl font-black text-slate-900">{workers.length}</p>
                     </div>
-                </main>
+                    <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Services Offered</p>
+                            <span className="material-symbols-outlined text-primary bg-blue-50 p-2 rounded-lg text-[24px]">handyman</span>
+                        </div>
+                        <p className="text-3xl font-black text-slate-900">{services.length}</p>
+                    </div>
+                    <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Customers</p>
+                            <span className="material-symbols-outlined text-primary bg-blue-50 p-2 rounded-lg text-[24px]">group</span>
+                        </div>
+                        <p className="text-3xl font-black text-slate-900">{customers.length}</p>
+                    </div>
+                </div>
+
+                <section id="activity" className="flex flex-col gap-4">
+                    <h2 className="text-2xl font-bold text-slate-900">Latest Activity</h2>
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Type</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Details</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr className="border-b border-slate-100 last:border-none">
+                                    <td className="px-6 py-4 text-sm font-medium text-slate-900">Approvals</td>
+                                    <td className="px-6 py-4 text-sm text-slate-600">No pending worker approvals</td>
+                                    <td className="px-6 py-4">
+                                        <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-bold text-green-700">Clear</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="workers" className="flex flex-col gap-6 pt-8">
+                    <div className="flex items-end justify-between">
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-900">Workers Management</h2>
+                            <p className="text-slate-500">Add or edit worker profiles and availability.</p>
+                        </div>
+                        <Button variant="ghost" onClick={resetWorkerForm}>Clear Form</Button>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+                        <form className="flex flex-col gap-6" onSubmit={handleWorkerSubmit}>
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                <Input
+                                    label="First name"
+                                    value={workerForm.firstName}
+                                    onChange={(event) => setWorkerForm({ ...workerForm, firstName: event.target.value })}
+                                />
+                                <Input
+                                    label="Last name"
+                                    value={workerForm.lastName}
+                                    onChange={(event) => setWorkerForm({ ...workerForm, lastName: event.target.value })}
+                                />
+                                <Input
+                                    label="Email"
+                                    type="email"
+                                    value={workerForm.email}
+                                    onChange={(event) => setWorkerForm({ ...workerForm, email: event.target.value })}
+                                />
+                                <Input
+                                    label="Phone"
+                                    value={workerForm.phoneNumber}
+                                    onChange={(event) => setWorkerForm({ ...workerForm, phoneNumber: event.target.value })}
+                                />
+                                <Input
+                                    label="Experience (Years)"
+                                    type="number"
+                                    value={workerForm.yearsOfExperience}
+                                    onChange={(event) => setWorkerForm({ ...workerForm, yearsOfExperience: Number(event.target.value) })}
+                                />
+                                <Input
+                                    label="Hourly Rate (VND)"
+                                    type="number"
+                                    value={workerForm.hourlyRate}
+                                    onChange={(event) => setWorkerForm({ ...workerForm, hourlyRate: Number(event.target.value) })}
+                                />
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <label className="flex items-center gap-3 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        className="size-5 rounded border-slate-300 text-primary focus:ring-primary/20"
+                                        checked={workerForm.isAvailable}
+                                        onChange={(event) => setWorkerForm({ ...workerForm, isAvailable: event.target.checked })}
+                                    />
+                                    <span className="text-sm font-bold text-slate-700">Mark as Available</span>
+                                </label>
+                            </div>
+                            <div className="flex justify-end">
+                                <Button type="submit">
+                                    {editingWorkerId ? "Update Worker Profile" : "Create New Worker"}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Worker</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Contact</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Status</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {workers.map((worker) => (
+                                    <tr key={worker.workerId} className="border-b border-slate-100 last:border-none hover:bg-slate-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-slate-900">{worker.firstName} {worker.lastName}</span>
+                                                <span className="text-xs text-slate-500">{worker.yearsOfExperience} years exp.</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm text-slate-700">{worker.email}</span>
+                                                <span className="text-xs text-slate-500">{worker.phoneNumber}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${worker.isAvailable ? "bg-green-50 text-green-700" : "bg-slate-100 text-slate-600"}`}>
+                                                {worker.isAvailable ? "Online" : "Offline"}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    onClick={() => {
+                                                        setEditingWorkerId(worker.workerId);
+                                                        setWorkerForm({
+                                                            firstName: worker.firstName,
+                                                            lastName: worker.lastName,
+                                                            email: worker.email,
+                                                            phoneNumber: worker.phoneNumber,
+                                                            yearsOfExperience: worker.yearsOfExperience,
+                                                            hourlyRate: worker.hourlyRate,
+                                                            rating: worker.rating,
+                                                            isAvailable: worker.isAvailable,
+                                                            address: worker.address,
+                                                            workerProfileId: worker.workerProfileId ?? null,
+                                                        });
+                                                    }}
+                                                >
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="text-rose-500 hover:bg-rose-50"
+                                                    onClick={() => deleteAdminWorker(worker.workerId).then(loadAll)}
+                                                >
+                                                    Delete
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="services" className="flex flex-col gap-6 pt-8">
+                    <div className="flex items-end justify-between">
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-900">Services Management</h2>
+                            <p className="text-slate-500">Manage service types, fees, and stats.</p>
+                        </div>
+                        <Button variant="ghost" onClick={resetServiceForm}>Clear Form</Button>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+                        <form className="flex flex-col gap-6" onSubmit={handleServiceSubmit}>
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                <Input
+                                    label="Service Name"
+                                    value={serviceForm.serviceName}
+                                    onChange={(event) => setServiceForm({ ...serviceForm, serviceName: event.target.value })}
+                                />
+                                <Input
+                                    label="Service Fee (VND)"
+                                    type="number"
+                                    value={serviceForm.serviceFee}
+                                    onChange={(event) => setServiceForm({ ...serviceForm, serviceFee: Number(event.target.value) })}
+                                />
+                                <Input
+                                    label="Total Jobs"
+                                    type="number"
+                                    value={serviceForm.totalJobs}
+                                    onChange={(event) => setServiceForm({ ...serviceForm, totalJobs: Number(event.target.value) })}
+                                />
+                            </div>
+                            <div className="flex justify-end">
+                                <Button type="submit">
+                                    {editingServiceId ? "Update Service" : "Create Service"}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Service Name</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Base Fee</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Total Jobs</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {services.map((service) => (
+                                    <tr key={service.serviceId} className="border-b border-slate-100 last:border-none hover:bg-slate-50 transition-colors">
+                                        <td className="px-6 py-4 font-bold text-slate-900">{service.serviceName}</td>
+                                        <td className="px-6 py-4 text-sm text-slate-700">{service.serviceFee.toLocaleString()} VND</td>
+                                        <td className="px-6 py-4 text-sm text-slate-700">{service.totalJobs}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    onClick={() => {
+                                                        setEditingServiceId(service.serviceId);
+                                                        setServiceForm({
+                                                            serviceName: service.serviceName,
+                                                            serviceFee: service.serviceFee,
+                                                            totalJobs: service.totalJobs,
+                                                        });
+                                                    }}
+                                                >
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="text-rose-500 hover:bg-rose-50"
+                                                    onClick={() => deleteAdminService(service.serviceId).then(loadAll)}
+                                                >
+                                                    Delete
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="customers" className="flex flex-col gap-6 pt-8">
+                    <div className="flex items-end justify-between">
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-900">Customers Management</h2>
+                            <p className="text-slate-500">Manage customer accounts and contact info.</p>
+                        </div>
+                        <Button variant="ghost" onClick={resetCustomerForm}>Clear Form</Button>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+                        <form className="flex flex-col gap-6" onSubmit={handleCustomerSubmit}>
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                <Input
+                                    label="First Name"
+                                    value={customerForm.firstName}
+                                    onChange={(event) => setCustomerForm({ ...customerForm, firstName: event.target.value })}
+                                />
+                                <Input
+                                    label="Last Name"
+                                    value={customerForm.lastName}
+                                    onChange={(event) => setCustomerForm({ ...customerForm, lastName: event.target.value })}
+                                />
+                                <Input
+                                    label="Email"
+                                    type="email"
+                                    value={customerForm.email}
+                                    onChange={(event) => setCustomerForm({ ...customerForm, email: event.target.value })}
+                                />
+                                <Input
+                                    label="Phone"
+                                    value={customerForm.phoneNumber}
+                                    onChange={(event) => setCustomerForm({ ...customerForm, phoneNumber: event.target.value })}
+                                />
+                                <Input
+                                    label={editingCustomerId ? "Password (optional)" : "Password"}
+                                    type="password"
+                                    value={customerForm.password ?? ""}
+                                    onChange={(event) => setCustomerForm({ ...customerForm, password: event.target.value })}
+                                />
+                            </div>
+                            <div className="flex justify-end">
+                                <Button type="submit">
+                                    {editingCustomerId ? "Update Customer" : "Create Customer"}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Customer</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Email</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Phone</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {customers.map((customer) => (
+                                    <tr key={customer.customerId} className="border-b border-slate-100 last:border-none hover:bg-slate-50 transition-colors">
+                                        <td className="px-6 py-4 font-bold text-slate-900">{customer.firstName} {customer.lastName}</td>
+                                        <td className="px-6 py-4 text-sm text-slate-700">{customer.email}</td>
+                                        <td className="px-6 py-4 text-sm text-slate-700">{customer.phoneNumber}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    onClick={() => {
+                                                        setEditingCustomerId(customer.customerId);
+                                                        setCustomerForm({
+                                                            firstName: customer.firstName,
+                                                            lastName: customer.lastName,
+                                                            email: customer.email,
+                                                            phoneNumber: customer.phoneNumber,
+                                                            password: "",
+                                                        });
+                                                    }}
+                                                >
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="text-rose-500 hover:bg-rose-50"
+                                                    onClick={() => deleteAdminCustomer(customer.customerId).then(loadAll)}
+                                                >
+                                                    Delete
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
-        </div>
+        </AdminDashboardShell>
     );
 };
