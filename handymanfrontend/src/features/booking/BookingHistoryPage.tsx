@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getBookings, getBookingsByCustomer, getBookingsByWorker } from "../../api/booking.api";
+import { getBookings, getBookingsByCustomer, getBookingsByWorker, updateBookingStatus } from "../../api/booking.api";
 import { Button } from "../../components/common/Button";
 import { formatDateTime } from "../../utils/validators";
 import { useAuth } from "../../hooks/useAuth";
-import type { Booking } from "./booking.types";
+import type { Booking, BookingStatus } from "./booking.types";
 import styles from "./BookingHistoryPage.module.css";
+import { useToast } from "../../context/ToastContext";
 
 export const BookingHistoryPage = () => {
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [cancellingId, setCancellingId] = useState<number | null>(null);
     const { user } = useAuth();
+    const { showToast } = useToast();
     const role = user?.role ?? "Customer";
 
     const formatVnd = (value: number) =>
@@ -21,38 +24,67 @@ export const BookingHistoryPage = () => {
             maximumFractionDigits: 0,
         }).format(value);
 
-    useEffect(() => {
-        const load = async () => {
-            try {
-                setLoading(true);
-                if (!user?.id) {
-                    setBookings([]);
-                    setError(null);
-                    return;
-                }
-
-                const data = role === "Worker"
-                    ? await getBookingsByWorker(user.id)
-                    : role === "Admin"
-                        ? await getBookings()
-                        : await getBookingsByCustomer(user.id);
-                setBookings(data ?? []);
+    const loadBookings = async () => {
+        try {
+            setLoading(true);
+            if (!user?.id) {
+                setBookings([]);
                 setError(null);
-            } catch {
-                setError("Unable to load bookings.");
-            } finally {
-                setLoading(false);
+                return;
             }
-        };
 
-        load();
+            const data = role === "Worker"
+                ? await getBookingsByWorker(user.id)
+                : role === "Admin"
+                    ? await getBookings()
+                    : await getBookingsByCustomer(user.id);
+            setBookings(data ?? []);
+            setError(null);
+        } catch {
+            setError("Unable to load bookings.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadBookings();
     }, [role, user?.id]);
+
+    const handleCancel = async (bookingId: number) => {
+        if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+
+        try {
+            setCancellingId(bookingId);
+            await updateBookingStatus(bookingId, "Cancelled");
+            setBookings(prev => prev.map(b =>
+                b.bookingId === bookingId ? { ...b, status: "Cancelled" as BookingStatus } : b
+            ));
+            showToast("Booking cancelled successfully!");
+        } catch {
+            showToast("Failed to cancel booking. Please try again.", "error");
+        } finally {
+            setCancellingId(null);
+        }
+    };
 
     const sorted = useMemo(() => {
         return [...bookings].sort(
             (a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime()
         );
     }, [bookings]);
+
+    const getStatusClass = (status: BookingStatus) => {
+        switch (status) {
+            case "Pending": return styles.statusPending;
+            case "Confirmed": return styles.statusConfirmed;
+            case "InProgress": return styles.statusInProgress;
+            case "Completed": return styles.statusCompleted;
+            case "Cancelled": return styles.statusCancelled;
+            case "Declined": return styles.statusDeclined;
+            default: return "";
+        }
+    };
 
     if (loading) {
         return (
@@ -71,7 +103,11 @@ export const BookingHistoryPage = () => {
     }
 
     if (error) {
-        return <div className={styles.error}>{error}</div>;
+        return (
+            <div className={styles.container}>
+                <div className={styles.error}>{error}</div>
+            </div>
+        );
     }
 
     return (
@@ -99,29 +135,48 @@ export const BookingHistoryPage = () => {
                 <div className={styles.list}>
                     {sorted.map((booking) => {
                         const isUpcoming = new Date(booking.startAt) > new Date();
+                        const canCancel = (booking.status === "Pending" || booking.status === "Confirmed") && role === "Customer";
+
                         return (
                             <article key={booking.bookingId} className={styles.card}>
-                                <div>
-                                    <h3>Booking #{booking.bookingId}</h3>
-                                    <p>{formatDateTime(booking.startAt)}</p>
-                                    <span
-                                        className={
-                                            isUpcoming ? styles.upcoming : styles.past
-                                        }
-                                    >
-                                        {isUpcoming ? "Upcoming" : "Past"}
-                                    </span>
+                                <div className={styles.cardLeft}>
+                                    <div className={styles.statusWrapper}>
+                                        <h3>Booking #{booking.bookingId}</h3>
+                                        <span className={`${styles.badge} ${getStatusClass(booking.status)}`}>
+                                            {booking.status}
+                                        </span>
+                                        {isUpcoming && booking.status !== "Cancelled" && booking.status !== "Declined" && (
+                                            <span className={styles.upcomingBadge}>Upcoming</span>
+                                        )}
+                                    </div>
+                                    <div className={styles.cardInfo}>
+                                        <div className={styles.infoItem}>
+                                            <span>📅</span>
+                                            {formatDateTime(booking.startAt)}
+                                        </div>
+                                        <div className={styles.infoItem}>
+                                            <span>👤</span>
+                                            ID: {role === "Worker" ? `Cust ${booking.customerId}` : `Worker ${booking.workerId}`}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p>Status: {booking.status}</p>
-                                    <p>Worker ID: {booking.workerId}</p>
-                                    {booking.minPrice || booking.maxPrice ? (
-                                        <p>
-                                            Price range: {formatVnd(booking.minPrice)} - {formatVnd(booking.maxPrice)}
-                                        </p>
-                                    ) : (
-                                        <p>Price range: TBD</p>
-                                    )}
+
+                                <div className={styles.cardRight}>
+                                    <div className={styles.price}>
+                                        {booking.amount > 0 ? formatVnd(booking.amount) : "TBD"}
+                                    </div>
+                                    <div className={styles.actions}>
+                                        {canCancel && (
+                                            <button
+                                                className={styles.cancelBtn}
+                                                onClick={() => handleCancel(booking.bookingId)}
+                                                disabled={cancellingId === booking.bookingId}
+                                            >
+                                                {cancellingId === booking.bookingId ? "Cancelling..." : "Cancel Booking"}
+                                            </button>
+                                        )}
+                                        <button className={styles.detailBtn}>View Details</button>
+                                    </div>
                                 </div>
                             </article>
                         );

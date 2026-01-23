@@ -236,18 +236,39 @@ export const ProfilePage = () => {
                                 <span className="material-symbols-outlined">dashboard</span>
                                 <span className="text-sm font-medium">Dashboard</span>
                             </Link>
-                            {[
-                                ["calendar_month", "My Bookings", "/bookings"],
-                                ["chat_bubble", "Messages", "/messages"],
-                                ["credit_card", "Payment Methods", "/payments"],
-                                ["settings", "Settings", "/settings"],
+                            {role === "Worker" && [
+                                ["explore", "Job Board", "/worker/job-board"],
                             ].map(([icon, label, to]) => (
                                 <Link
                                     key={label}
                                     to={to}
-                                    className="flex items-center gap-3 rounded-lg px-3 py-2.5
-                 text-slate-600 transition-colors
-                 hover:bg-slate-100 hover:text-slate-900"
+                                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                                >
+                                    <span className="material-symbols-outlined">{icon}</span>
+                                    <span className="text-sm font-medium">{label}</span>
+                                </Link>
+                            ))}
+                            {role === "Customer" && [
+                                ["work_history", "Job Gigs", "/customer/gigs"],
+                            ].map(([icon, label, to]) => (
+                                <Link
+                                    key={label}
+                                    to={to}
+                                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                                >
+                                    <span className="material-symbols-outlined">{icon}</span>
+                                    <span className="text-sm font-medium">{label}</span>
+                                </Link>
+                            ))}
+                            {[
+                                ["calendar_month", "My Bookings", "/bookings"],
+                                ["chat_bubble", "Messages", "/messages"],
+                                ["credit_card", "Payment Methods", "/payments"],
+                            ].map(([icon, label, to]) => (
+                                <Link
+                                    key={label}
+                                    to={to}
+                                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
                                 >
                                     <span className="material-symbols-outlined">{icon}</span>
                                     <span className="text-sm font-medium">{label}</span>
@@ -274,12 +295,24 @@ export const ProfilePage = () => {
                                 Manage your bookings and find your next pro.
                             </p>
                         </div>
-                        <Link
-                            to="/handymen"
-                            className="rounded-lg bg-primary px-6 py-2 border border-primary text-sm font-bold text-black hover:bg-blue-600"
-                        >
-                            Book a Service
-                        </Link>
+                        <div className="flex gap-3">
+                            {role === "Customer" && (
+                                <Link
+                                    to="/customer/gigs"
+                                    className="rounded-lg bg-white px-6 py-2 border border-slate-200 text-sm font-bold text-slate-900 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined text-lg">add_circle</span>
+                                    Post a Job
+                                </Link>
+                            )}
+                            <Link
+                                to="/handymen"
+                                className="rounded-lg bg-primary px-6 py-2 border border-primary text-sm font-bold text-black hover:bg-blue-600 transition-colors flex items-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-lg">search</span>
+                                Book a Service
+                            </Link>
+                        </div>
                     </div>
 
                     <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -352,7 +385,7 @@ export const ProfilePage = () => {
                                     </div>
                                     <div className="mt-1 flex items-center gap-2 text-sm">
                                         <span className="font-semibold text-text-primary-light dark:text-white">
-                                            $85/hr
+                                            850.000đ/giờ
                                         </span>
                                         <span className="text-text-secondary-light dark:text-text-secondary-dark">
                                             • 120 jobs
@@ -399,7 +432,7 @@ export const ProfilePage = () => {
                                     </div>
                                     <div className="mt-1 flex items-center gap-2 text-sm">
                                         <span className="font-semibold text-text-primary-light dark:text-white">
-                                            $65/hr
+                                            650.000đ/giờ
                                         </span>
                                         <span className="text-text-secondary-light dark:text-text-secondary-dark">
                                             • 85 jobs
@@ -446,7 +479,7 @@ export const ProfilePage = () => {
                                     </div>
                                     <div className="mt-1 flex items-center gap-2 text-sm">
                                         <span className="font-semibold text-text-primary-light dark:text-white">
-                                            $55/hr
+                                            550.000đ/giờ
                                         </span>
                                         <span className="text-text-secondary-light dark:text-text-secondary-dark">
                                             • 42 jobs
@@ -493,7 +526,7 @@ export const ProfilePage = () => {
                                     </div>
                                     <div className="mt-1 flex items-center gap-2 text-sm">
                                         <span className="font-semibold text-text-primary-light dark:text-white">
-                                            $45/hr
+                                            450.000đ/giờ
                                         </span>
                                         <span className="text-text-secondary-light dark:text-text-secondary-dark">
                                             • 215 jobs

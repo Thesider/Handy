@@ -329,7 +329,7 @@ export const HomePage = () => {
                                         <span className="material-symbols-outlined text-green-500">
                                             monetization_on
                                         </span>
-                                        <span>Earned $1,240</span>
+                                        <span>Kiếm được 30.000.000đ</span>
                                     </div>
                                 </div>
                             </div>

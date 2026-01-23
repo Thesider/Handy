@@ -4,6 +4,7 @@ import styles from "./WorkerSidebar.module.css";
 
 const navItems = [
     { label: "Dashboard", to: "/profile/worker", icon: "dashboard" },
+    { label: "Job Board", to: "/worker/job-board", icon: "explore" },
     { label: "Jobs", to: "/worker/jobs", icon: "work" },
     { label: "Earnings", to: "/worker/earnings", icon: "attach_money" },
     { label: "Profile Settings", to: "/worker/settings", icon: "person" },

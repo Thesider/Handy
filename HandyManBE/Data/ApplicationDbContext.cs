@@ -19,6 +19,8 @@ namespace HandyManBE.Data
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<Admin> Admins { get; set; }
+        public DbSet<JobGig> JobGigs { get; set; }
+        public DbSet<Bid> Bids { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -90,6 +92,30 @@ namespace HandyManBE.Data
                 entity.HasKey(a => a.AdminId);
                 entity.HasIndex(a => a.Email).IsUnique();
                 entity.Property(a => a.RowVersion).IsRowVersion();
+            });
+
+            modelBuilder.Entity<JobGig>(entity =>
+            {
+                entity.HasKey(jg => jg.JobGigId);
+                entity.Property(jg => jg.Budget).HasColumnType("decimal(18,2)");
+                entity.HasOne(jg => jg.Customer)
+                    .WithMany()
+                    .HasForeignKey(jg => jg.CustomerId);
+                entity.HasOne(jg => jg.Service)
+                    .WithMany()
+                    .HasForeignKey(jg => jg.ServiceId);
+            });
+
+            modelBuilder.Entity<Bid>(entity =>
+            {
+                entity.HasKey(b => b.BidId);
+                entity.Property(b => b.Amount).HasColumnType("decimal(18,2)");
+                entity.HasOne(b => b.JobGig)
+                    .WithMany(jg => jg.Bids)
+                    .HasForeignKey(b => b.JobGigId);
+                entity.HasOne(b => b.Worker)
+                    .WithMany()
+                    .HasForeignKey(b => b.WorkerId);
             });
 
             // Seed data

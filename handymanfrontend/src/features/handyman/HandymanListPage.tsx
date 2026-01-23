@@ -17,6 +17,8 @@ export const HandymanListPage = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [maxPrice, setMaxPrice] = useState(0);
     const [minExperience, setMinExperience] = useState(0);
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     const [viewMode, setViewMode] = useState<"list" | "map">("list");
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 6;
@@ -37,6 +39,8 @@ export const HandymanListPage = () => {
         serviceId !== "" ||
         searchTerm.trim().length > 0 ||
         minExperience > 0 ||
+        startDate !== "" ||
+        endDate !== "" ||
         (maxHourlyRate > 0 && maxPrice < maxHourlyRate);
 
     useEffect(() => {
@@ -51,6 +55,8 @@ export const HandymanListPage = () => {
         setServiceId("");
         setMinExperience(0);
         setSearchTerm("");
+        setStartDate("");
+        setEndDate("");
         setMaxPrice(maxHourlyRate);
     };
 
@@ -135,6 +141,8 @@ export const HandymanListPage = () => {
         maxPrice,
         minExperience,
         searchTerm,
+        startDate,
+        endDate,
     ]);
 
     const totalPages = Math.max(1, Math.ceil(filteredWorkers.length / pageSize));
@@ -355,6 +363,30 @@ export const HandymanListPage = () => {
                                     placeholder="VD: Nguyễn Văn A, Hà Nội"
                                     className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                                 />
+                            </div>
+
+                            <hr className="border-slate-100" />
+
+                            <div className="flex flex-col gap-3">
+                                <p className="text-sm font-medium text-slate-900">Thời gian rảnh</p>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase font-bold text-slate-400">Từ ngày</label>
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase font-bold text-slate-400">Đến ngày</label>
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </aside>

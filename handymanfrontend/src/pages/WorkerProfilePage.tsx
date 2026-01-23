@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { getBookingsByWorker, updateBookingStatus } from "../api/booking.api";
-import { getServices, getWorkerById } from "../api/handyman.api";
+import { getServices, getWorkerById, updateWorker } from "../api/handyman.api";
 import type { Booking } from "../features/booking/booking.types";
 import type { Service, Worker } from "../features/handyman/handyman.types";
 import { WorkerDashboardShell } from "../components/layout/WorkerDashboardShell";
@@ -160,6 +160,17 @@ export const WorkerProfilePage = () => {
     const formatDayNumber = (value: string) =>
         new Date(value).getDate().toString().padStart(2, "0");
 
+    const handleToggleStatus = async () => {
+        if (!worker) return;
+        try {
+            const updated = { ...worker, isAvailable: !worker.isAvailable };
+            await updateWorker(worker.workerId, updated);
+            setWorker(updated);
+        } catch {
+            setError("Cannot update status at this time.");
+        }
+    };
+
     const displayName = worker
         ? `${worker.firstName} ${worker.lastName}`
         : user?.name ?? "HandyHelper";
@@ -180,12 +191,15 @@ export const WorkerProfilePage = () => {
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 rounded-full bg-green-100 px-3 py-1.5">
-                        <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-xs font-bold uppercase tracking-wide text-green-700">
+                        <span className={`h-2 w-2 rounded-full ${statusOnline ? "bg-green-500 animate-pulse" : "bg-slate-400"}`} />
+                        <span className={`text-xs font-bold uppercase tracking-wide ${statusOnline ? "text-green-700" : "text-slate-600"}`}>
                             {statusOnline ? "Online" : "Offline"}
                         </span>
                     </div>
-                    <button className="flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 shadow-sm transition-colors hover:bg-slate-50">
+                    <button
+                        onClick={handleToggleStatus}
+                        className="flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 shadow-sm transition-colors hover:bg-slate-50"
+                    >
                         {statusOnline ? "Go Offline" : "Go Online"}
                     </button>
                 </div>

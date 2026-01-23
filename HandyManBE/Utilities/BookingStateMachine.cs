@@ -10,7 +10,7 @@ namespace Ulilities
             = new Dictionary<BookingStatus, HashSet<BookingStatus>>
             {
                 { BookingStatus.Pending, new HashSet<BookingStatus> { BookingStatus.Confirmed, BookingStatus.Declined, BookingStatus.Cancelled } },
-                { BookingStatus.Confirmed, new HashSet<BookingStatus> { BookingStatus.InProgress, BookingStatus.Cancelled } },
+                { BookingStatus.Confirmed, new HashSet<BookingStatus> { BookingStatus.InProgress, BookingStatus.Completed, BookingStatus.Cancelled } },
                 { BookingStatus.InProgress, new HashSet<BookingStatus> { BookingStatus.Completed, BookingStatus.Cancelled } },
                 { BookingStatus.Completed, new HashSet<BookingStatus>() },
                 { BookingStatus.Cancelled, new HashSet<BookingStatus>() },
