@@ -27,12 +27,6 @@ export const HandymanListPage = () => {
         () => (workers.length ? Math.max(...workers.map((w) => w.hourlyRate)) : 0),
         [workers]
     );
-    const maxExperience = useMemo(
-        () =>
-            workers.length ? Math.max(...workers.map((w) => w.yearsOfExperience)) : 0,
-        [workers]
-    );
-
     const hasActiveFilters =
         availability ||
         minRating > 0 ||
@@ -53,7 +47,6 @@ export const HandymanListPage = () => {
         setAvailability(false);
         setMinRating(0);
         setServiceId("");
-        setMinExperience(0);
         setSearchTerm("");
         setStartDate("");
         setEndDate("");
@@ -122,7 +115,6 @@ export const HandymanListPage = () => {
                 return false;
             }
             if (maxPrice > 0 && worker.hourlyRate > maxPrice) return false;
-            if (minExperience > 0 && worker.yearsOfExperience < minExperience) return false;
 
             if (normalizedSearch) {
                 const fullName = `${worker.firstName} ${worker.lastName}`.toLowerCase();
@@ -139,7 +131,6 @@ export const HandymanListPage = () => {
         minRating,
         serviceWorkerIds,
         maxPrice,
-        minExperience,
         searchTerm,
         startDate,
         endDate,
@@ -166,7 +157,7 @@ export const HandymanListPage = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [availability, minRating, serviceId, searchTerm, maxPrice, minExperience]);
+    }, [availability, minRating, serviceId, searchTerm, maxPrice]);
 
     if (loading) {
         return (
@@ -335,21 +326,6 @@ export const HandymanListPage = () => {
                             </div>
 
                             <hr className="border-slate-100" />
-
-                            <div>
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm font-medium text-slate-900">Kinh nghiệm</p>
-                                    <span className="text-xs text-slate-500">{minExperience} năm</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min={0}
-                                    max={maxExperience || 1}
-                                    value={minExperience}
-                                    onChange={(event) => setMinExperience(Number(event.target.value))}
-                                    className="mt-3 w-full accent-primary"
-                                />
-                            </div>
 
                             <div>
                                 <label className="text-sm font-medium text-slate-900" htmlFor="search">

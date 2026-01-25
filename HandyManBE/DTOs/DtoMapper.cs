@@ -39,7 +39,6 @@ namespace HandyManBE.DTOs
                 LastName = dto.LastName,
                 Email = dto.Email,
                 PhoneNumber = dto.PhoneNumber,
-                YearsOfExperience = dto.YearsOfExperience,
                 IsAvailable = dto.IsAvailable,
                 HourlyRate = dto.HourlyRate,
                 Rating = dto.Rating,
@@ -58,7 +57,6 @@ namespace HandyManBE.DTOs
                 LastName = worker.LastName,
                 Email = worker.Email,
                 PhoneNumber = worker.PhoneNumber,
-                YearsOfExperience = worker.YearsOfExperience,
                 IsAvailable = worker.IsAvailable,
                 HourlyRate = worker.HourlyRate,
                 Rating = worker.Rating,
@@ -74,6 +72,8 @@ namespace HandyManBE.DTOs
                 ServiceId = id ?? 0,
                 ServiceName = dto.ServiceName,
                 ServiceFee = dto.ServiceFee,
+                MinPrice = dto.MinPrice,
+                MaxPrice = dto.MaxPrice,
                 TotalJobs = dto.TotalJobs
             };
         }
@@ -85,6 +85,8 @@ namespace HandyManBE.DTOs
                 ServiceId = service.ServiceId,
                 ServiceName = service.ServiceName,
                 ServiceFee = service.ServiceFee,
+                MinPrice = service.MinPrice,
+                MaxPrice = service.MaxPrice,
                 TotalJobs = service.TotalJobs
             };
         }
