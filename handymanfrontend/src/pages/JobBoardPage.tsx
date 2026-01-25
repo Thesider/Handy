@@ -4,6 +4,7 @@ import { Button } from "../components/common/Button";
 import { getGigs, addBid } from "../api/gigs.api";
 import type { JobGig } from "../api/gigs.api";
 import { useAuth } from "../hooks/useAuth";
+import { httpClient } from "../api/httpClient";
 
 export const JobBoardPage = () => {
     const { user } = useAuth();
@@ -13,6 +14,7 @@ export const JobBoardPage = () => {
     const [biddingGigId, setBiddingGigId] = useState<number | null>(null);
     const [bidAmount, setBidAmount] = useState("");
     const [bidMessage, setBidMessage] = useState("");
+    const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
 
     const loadGigs = async () => {
         try {
@@ -46,6 +48,28 @@ export const JobBoardPage = () => {
             setActiveTab("my-gigs");
         } catch (err) {
             console.error("Failed to add bid:", err);
+        }
+    };
+
+    const handleStatusChange = async (jobGigId: number, newStatus: "InProgress" | "Completed") => {
+        const confirmMsg = newStatus === "InProgress"
+            ? "Start working on this job?"
+            : "Mark this job as completed?";
+
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            setUpdatingStatusId(jobGigId);
+            await httpClient.put(`/api/job-gigs/${jobGigId}/status`, newStatus);
+
+            // Reload gigs to get updated status
+            await loadGigs();
+            alert(newStatus === "Completed" ? "Job marked as completed!" : "Job started!");
+        } catch (err) {
+            console.error("Failed to update status:", err);
+            alert("Failed to update job status. Please try again.");
+        } finally {
+            setUpdatingStatusId(null);
         }
     };
 
@@ -189,14 +213,50 @@ export const JobBoardPage = () => {
                                                 <span className="text-xl font-black text-primary">{myBid?.amount.toLocaleString()} VND</span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-4 border-t border-slate-50 pt-4 mt-2">
+                                        <div className="flex flex-col gap-3 border-t border-slate-50 pt-4 mt-2">
                                             {isAccepted ? (
-                                                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold w-full">Start Direct Chat</Button>
-                                            ) : (
                                                 <>
-                                                    <Button variant="ghost" className="text-primary hover:bg-blue-50 font-bold border border-primary/10">View Status</Button>
-                                                    <Button variant="ghost" className="text-slate-500 hover:bg-slate-50 font-bold">Withdraw Application</Button>
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${gig.status === "InProgress" ? "bg-blue-100 text-blue-700" :
+                                                                gig.status === "Completed" ? "bg-emerald-100 text-emerald-700" :
+                                                                    "bg-slate-100 text-slate-600"
+                                                            }`}>
+                                                            {gig.status}
+                                                        </span>
+                                                    </div>
+
+                                                    {gig.status === "InProgress" ? (
+                                                        <Button
+                                                            onClick={() => handleStatusChange(gig.jobGigId, "Completed")}
+                                                            disabled={updatingStatusId === gig.jobGigId}
+                                                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold w-full disabled:opacity-50"
+                                                        >
+                                                            {updatingStatusId === gig.jobGigId ? "Updating..." : "Mark as Completed"}
+                                                        </Button>
+                                                    ) : gig.status === "Open" ? (
+                                                        <Button
+                                                            onClick={() => handleStatusChange(gig.jobGigId, "InProgress")}
+                                                            disabled={updatingStatusId === gig.jobGigId}
+                                                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold w-full disabled:opacity-50"
+                                                        >
+                                                            {updatingStatusId === gig.jobGigId ? "Starting..." : "Start Work"}
+                                                        </Button>
+                                                    ) : gig.status === "Completed" ? (
+                                                        <div className="text-center py-3 text-emerald-600 font-bold flex items-center justify-center gap-2">
+                                                            <span className="material-symbols-outlined">check_circle</span>
+                                                            Job Completed
+                                                        </div>
+                                                    ) : (
+                                                        <Button className="bg-primary hover:bg-primary/90 text-white font-bold w-full">
+                                                            Contact Customer
+                                                        </Button>
+                                                    )}
                                                 </>
+                                            ) : (
+                                                <div className="flex items-center gap-3">
+                                                    <Button variant="ghost" className="text-primary hover:bg-blue-50 font-bold border border-primary/10 flex-1">View Status</Button>
+                                                    <Button variant="ghost" className="text-slate-500 hover:bg-slate-50 font-bold flex-1">Withdraw</Button>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
