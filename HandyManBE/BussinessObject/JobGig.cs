@@ -20,5 +20,9 @@ namespace BussinessObject
         public virtual Customer? Customer { get; set; }
         public virtual Service? Service { get; set; }
         public virtual ICollection<Bid> Bids { get; set; } = new List<Bid>();
+
+        // Budget sẽ là giá tiền thuê 1 người
+        // thêm thuế số lượng người 
+        // Thêm xem thông tin nhân viên nhận việc
     }
 }

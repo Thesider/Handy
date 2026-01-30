@@ -12,6 +12,9 @@ namespace BussinessObject
         public decimal MinPrice { get; set; }
         public decimal MaxPrice { get; set; }
 
+                // Bo min max price chốt 1 mức giá nhất định
+
+
         public DateTimeOffset StartAt { get; set; }
         public DateTimeOffset? EndAt { get; set; }
         public BookingStatus Status { get; set; }

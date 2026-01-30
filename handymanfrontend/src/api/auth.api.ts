@@ -25,6 +25,7 @@ export const registerWorker = (payload: RegisterWorkerPayload) =>
     firstName: payload.firstName,
     lastName: payload.lastName,
     phoneNumber: payload.phoneNumber,
+    yearsOfExperience: payload.yearsOfExperience,
     hourlyRate: payload.hourlyRate,
     address: payload.address,
   });
