@@ -59,14 +59,33 @@ namespace HandyManBE.Services
 
         public async Task<bool> AcceptBidAsync(int jobGigId, int bidId)
         {
-            var gig = await _context.JobGigs.FindAsync(jobGigId);
+            var gig = await _context.JobGigs
+                .Include(g => g.Bids)
+                .FirstOrDefaultAsync(g => g.JobGigId == jobGigId);
+
             if (gig == null) return false;
 
-            var bid = await _context.Bids.FindAsync(bidId);
-            if (bid == null || bid.JobGigId != jobGigId) return false;
+            var bid = gig.Bids.FirstOrDefault(b => b.BidId == bidId);
+            if (bid == null) return false;
 
-            gig.AcceptedBidId = bidId;
-            gig.Status = JobGigStatus.InProgress;
+            // Check if already accepted
+            if (bid.IsAccepted) return true;
+
+            // Check if quota is full
+            int acceptedCount = gig.Bids.Count(b => b.IsAccepted);
+            if (acceptedCount >= gig.NumWorkersRequired)
+            {
+                // Quota full
+                return false;
+            }
+
+            bid.IsAccepted = true;
+            
+            // Should we update status if full?
+            if (acceptedCount + 1 >= gig.NumWorkersRequired)
+            {
+                gig.Status = JobGigStatus.InProgress;
+            }
             
             await _context.SaveChangesAsync();
             return true;

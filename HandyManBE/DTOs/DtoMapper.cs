@@ -39,6 +39,7 @@ namespace HandyManBE.DTOs
                 LastName = dto.LastName,
                 Email = dto.Email,
                 PhoneNumber = dto.PhoneNumber,
+                YearsOfExperience = dto.YearsOfExperience,
                 IsAvailable = dto.IsAvailable,
                 HourlyRate = dto.HourlyRate,
                 Rating = dto.Rating,
@@ -57,6 +58,7 @@ namespace HandyManBE.DTOs
                 LastName = worker.LastName,
                 Email = worker.Email,
                 PhoneNumber = worker.PhoneNumber,
+                YearsOfExperience = worker.YearsOfExperience,
                 IsAvailable = worker.IsAvailable,
                 HourlyRate = worker.HourlyRate,
                 Rating = worker.Rating,
@@ -72,8 +74,6 @@ namespace HandyManBE.DTOs
                 ServiceId = id ?? 0,
                 ServiceName = dto.ServiceName,
                 ServiceFee = dto.ServiceFee,
-                MinPrice = dto.MinPrice,
-                MaxPrice = dto.MaxPrice,
                 TotalJobs = dto.TotalJobs
             };
         }
@@ -85,8 +85,6 @@ namespace HandyManBE.DTOs
                 ServiceId = service.ServiceId,
                 ServiceName = service.ServiceName,
                 ServiceFee = service.ServiceFee,
-                MinPrice = service.MinPrice,
-                MaxPrice = service.MaxPrice,
                 TotalJobs = service.TotalJobs
             };
         }
@@ -160,9 +158,11 @@ namespace HandyManBE.DTOs
                 Budget = dto.Budget,
                 ServiceId = dto.ServiceId,
                 CustomerId = dto.CustomerId,
-                Location = dto.Location,
+                Address = ToEntity(dto.Address),
                 CreatedAtUtc = DateTime.UtcNow,
-                Status = Enums.JobGigStatus.Open
+                Status = Enums.JobGigStatus.Open,
+                NumWorkersRequired = dto.NumWorkersRequired,
+                DurationDays = dto.DurationDays
             };
         }
 
@@ -178,10 +178,12 @@ namespace HandyManBE.DTOs
                 ServiceType = gig.Service?.ServiceName ?? "Unknown",
                 CustomerId = gig.CustomerId,
                 CustomerName = gig.Customer != null ? $"{gig.Customer.FirstName} {gig.Customer.LastName}" : "Unknown",
-                Location = gig.Location,
+                Address = gig.Address != null ? ToDto(gig.Address) : new AddressDto(),
                 Status = gig.Status,
                 CreatedAtUtc = gig.CreatedAtUtc,
-                AcceptedBidId = gig.AcceptedBidId,
+                NumWorkersRequired = gig.NumWorkersRequired,
+                DurationDays = gig.DurationDays,
+                // AcceptedBidId = gig.AcceptedBidId,
                 Bids = gig.Bids?.Select(ToDto).ToList() ?? new List<BidDto>()
             };
         }
@@ -194,7 +196,8 @@ namespace HandyManBE.DTOs
                 WorkerId = dto.WorkerId,
                 Amount = dto.Amount,
                 Message = dto.Message,
-                CreatedAtUtc = DateTime.UtcNow
+                CreatedAtUtc = DateTime.UtcNow,
+                IsAccepted = false
             };
         }
 
@@ -209,7 +212,8 @@ namespace HandyManBE.DTOs
                 Amount = bid.Amount,
                 Message = bid.Message,
                 CreatedAtUtc = bid.CreatedAtUtc,
-                WorkerRating = bid.Worker?.Rating ?? 0
+                WorkerRating = bid.Worker?.Rating ?? 0,
+                IsAccepted = bid.IsAccepted
             };
         }
     }

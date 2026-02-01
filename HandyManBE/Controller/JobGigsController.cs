@@ -45,10 +45,62 @@ namespace HandyManBE.Controller
         [HttpPost]
         public async Task<ActionResult<JobGigDto>> Create(JobGigCreateDto dto)
         {
-            var created = await _jobGigService.CreateAsync(DtoMapper.ToEntity(dto));
-            // Re-fetch to include customer info
-            var result = await _jobGigService.GetByIdAsync(created.JobGigId);
-            return CreatedAtAction(nameof(GetById), new { id = result.JobGigId }, DtoMapper.ToDto(result));
+            try
+            {
+                // Validate the DTO
+                if (string.IsNullOrWhiteSpace(dto.Title))
+                {
+                    return BadRequest(new { error = "Title is required" });
+                }
+
+                if (dto.Budget <= 0)
+                {
+                    return BadRequest(new { error = "Budget must be greater than 0" });
+                }
+
+                if (dto.ServiceId <= 0)
+                {
+                    return BadRequest(new { error = "ServiceId is required" });
+                }
+
+                if (dto.CustomerId <= 0)
+                {
+                    return BadRequest(new { error = "CustomerId is required" });
+                }
+
+                Console.WriteLine($"Creating job gig - Title: {dto.Title}, Work Location: {dto.Address.Street}, {dto.Address.City}");
+
+                var created = await _jobGigService.CreateAsync(DtoMapper.ToEntity(dto));
+                
+                Console.WriteLine($"Job gig created successfully with ID: {created.JobGigId}");
+                
+                // Re-fetch to include customer info
+                var result = await _jobGigService.GetByIdAsync(created.JobGigId);
+                return CreatedAtAction(nameof(GetById), new { id = result.JobGigId }, DtoMapper.ToDto(result));
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                // Database-specific errors
+                Console.WriteLine($"Database error creating job gig: {dbEx.Message}");
+                Console.WriteLine($"Inner exception: {dbEx.InnerException?.Message}");
+                Console.WriteLine($"Stack trace: {dbEx.StackTrace}");
+                
+                var errorMessage = dbEx.InnerException?.Message ?? dbEx.Message;
+                if (errorMessage.Contains("FK_") || errorMessage.Contains("FOREIGN KEY"))
+                {
+                    return BadRequest(new { error = "Invalid CustomerId or ServiceId. Please ensure the customer and service exist." });
+                }
+                
+                return StatusCode(500, new { error = "Database error occurred", details = errorMessage });
+            }
+            catch (Exception ex)
+            {
+                // Log the full exception details
+                Console.WriteLine($"Error creating job gig: {ex.Message}");
+                Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { error = ex.Message, innerError = ex.InnerException?.Message, type = ex.GetType().Name });
+            }
         }
 
         [HttpPost("bids")]

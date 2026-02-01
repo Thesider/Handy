@@ -9,6 +9,7 @@ namespace BussinessObject
         public int WorkerId { get; set; }
         public decimal Amount { get; set; }
         public string Message { get; set; }
+        public bool IsAccepted { get; set; } = false;
         public DateTime CreatedAtUtc { get; set; }
 
         public virtual JobGig JobGig { get; set; }

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { HttpError } from "../api/httpClient";
+import { useEffect, useState } from "react";
+import { Button } from "../components/common/Button";
+import { Input } from "../components/common/Input";
 import {
     createAdminCustomer,
     createAdminService,
@@ -7,11 +8,8 @@ import {
     deleteAdminCustomer,
     deleteAdminService,
     deleteAdminWorker,
-    getAdminCustomerById,
     getAdminCustomers,
-    getAdminServiceById,
     getAdminServices,
-    getAdminWorkerById,
     getAdminWorkers,
     updateAdminCustomer,
     updateAdminService,
@@ -27,31 +25,16 @@ export const AdminPage = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [error, setError] = useState<string | null>(null);
 
-    const [searchTerm, setSearchTerm] = useState("");
-    const [roleFilter, setRoleFilter] = useState<RoleFilter>("All Roles");
-    const [statusFilter, setStatusFilter] = useState<StatusFilter>("All Status");
-
     const [editingWorkerId, setEditingWorkerId] = useState<number | null>(null);
     const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
     const [editingCustomerId, setEditingCustomerId] = useState<number | null>(null);
-
-    const [workerSubmitting, setWorkerSubmitting] = useState(false);
-    const [serviceSubmitting, setServiceSubmitting] = useState(false);
-    const [customerSubmitting, setCustomerSubmitting] = useState(false);
-
-    const [workerError, setWorkerError] = useState<string | null>(null);
-    const [serviceError, setServiceError] = useState<string | null>(null);
-    const [customerError, setCustomerError] = useState<string | null>(null);
-
-    const [workerFieldErrors, setWorkerFieldErrors] = useState<Record<string, string>>({});
-    const [serviceFieldErrors, setServiceFieldErrors] = useState<Record<string, string>>({});
-    const [customerFieldErrors, setCustomerFieldErrors] = useState<Record<string, string>>({});
 
     const [workerForm, setWorkerForm] = useState<Omit<Worker, "workerId">>({
         firstName: "",
         lastName: "",
         email: "",
         phoneNumber: "",
+        yearsOfExperience: 0,
         hourlyRate: 0,
         rating: 0,
         isAvailable: false,
@@ -68,8 +51,6 @@ export const AdminPage = () => {
     const [serviceForm, setServiceForm] = useState<Omit<Service, "serviceId">>({
         serviceName: "",
         serviceFee: 0,
-        minPrice: 0,
-        maxPrice: 0,
         totalJobs: 0,
     });
 
@@ -104,13 +85,12 @@ export const AdminPage = () => {
 
     const resetWorkerForm = () => {
         setEditingWorkerId(null);
-        setWorkerError(null);
-        setWorkerFieldErrors({});
         setWorkerForm({
             firstName: "",
             lastName: "",
             email: "",
             phoneNumber: "",
+            yearsOfExperience: 0,
             hourlyRate: 0,
             rating: 0,
             isAvailable: false,
@@ -127,21 +107,15 @@ export const AdminPage = () => {
 
     const resetServiceForm = () => {
         setEditingServiceId(null);
-        setServiceError(null);
-        setServiceFieldErrors({});
         setServiceForm({
             serviceName: "",
             serviceFee: 0,
-            minPrice: 0,
-            maxPrice: 0,
             totalJobs: 0,
         });
     };
 
     const resetCustomerForm = () => {
         setEditingCustomerId(null);
-        setCustomerError(null);
-        setCustomerFieldErrors({});
         setCustomerForm({
             firstName: "",
             lastName: "",
@@ -149,69 +123,6 @@ export const AdminPage = () => {
             phoneNumber: "",
             password: "",
         });
-    };
-
-    const extractErrorMessage = (err: unknown, fallback: string) => {
-        if (err instanceof HttpError) {
-            const data = err.data as { errors?: string[]; message?: string } | null;
-            if (data?.errors?.length) {
-                return data.errors.join(" ");
-            }
-            if (data?.message) {
-                return data.message;
-            }
-        }
-        if (err instanceof Error) {
-            return err.message;
-        }
-        return fallback;
-    };
-
-    const validateWorkerForm = () => {
-        const errors: Record<string, string> = {};
-        if (!workerForm.firstName.trim()) errors.firstName = "First name is required.";
-        if (!workerForm.lastName.trim()) errors.lastName = "Last name is required.";
-        if (!workerForm.email.trim()) {
-            errors.email = "Email is required.";
-        } else if (!/^\S+@\S+\.\S+$/.test(workerForm.email)) {
-            errors.email = "Enter a valid email address.";
-        }
-        if (!workerForm.phoneNumber.trim()) errors.phoneNumber = "Phone number is required.";
-        if (workerForm.hourlyRate < 0) errors.hourlyRate = "Hourly rate must be >= 0.";
-        if (workerForm.rating < 0 || workerForm.rating > 5) errors.rating = "Rating must be 0 - 5.";
-        if (!workerForm.address.street.trim()) errors["address.street"] = "Street is required.";
-        if (!workerForm.address.city.trim()) errors["address.city"] = "City is required.";
-        if (!workerForm.address.postalCode.trim()) errors["address.postalCode"] = "Postal code is required.";
-        return errors;
-    };
-
-    const validateServiceForm = () => {
-        const errors: Record<string, string> = {};
-        if (!serviceForm.serviceName.trim()) errors.serviceName = "Service name is required.";
-        if (serviceForm.serviceFee < 0) errors.serviceFee = "Service fee must be >= 0.";
-        if (serviceForm.minPrice < 0) errors.minPrice = "Min price must be >= 0.";
-        if (serviceForm.maxPrice < 0) errors.maxPrice = "Max price must be >= 0.";
-        if (serviceForm.maxPrice > 0 && serviceForm.minPrice > serviceForm.maxPrice) {
-            errors.maxPrice = "Max price must be >= min price.";
-        }
-        if (serviceForm.totalJobs < 0) errors.totalJobs = "Total jobs must be >= 0.";
-        return errors;
-    };
-
-    const validateCustomerForm = () => {
-        const errors: Record<string, string> = {};
-        if (!customerForm.firstName.trim()) errors.firstName = "First name is required.";
-        if (!customerForm.lastName.trim()) errors.lastName = "Last name is required.";
-        if (!customerForm.email.trim()) {
-            errors.email = "Email is required.";
-        } else if (!/^\S+@\S+\.\S+$/.test(customerForm.email)) {
-            errors.email = "Enter a valid email address.";
-        }
-        if (!customerForm.phoneNumber.trim()) errors.phoneNumber = "Phone number is required.";
-        if (!editingCustomerId && !(customerForm.password ?? "").trim()) {
-            errors.password = "Password is required for new customers.";
-        }
-        return errors;
     };
 
     const handleWorkerSubmit = async (event: React.FormEvent) => {

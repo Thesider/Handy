@@ -13,6 +13,5 @@ namespace BussinessObject
         public DateTime? ModifiedAtUtc { get; set; }
         public byte[] RowVersion { get; set; }
 
-
     }
 }

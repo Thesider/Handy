@@ -9,6 +9,7 @@ export type Address = {
 
 export type Worker = {
   workerId: number;
+  yearsOfExperience: number;
   isAvailable: boolean;
   hourlyRate: number;
   rating: number;
@@ -25,6 +26,4 @@ export type Service = {
   totalJobs: number;
   serviceName: string;
   serviceFee: number;
-  minPrice: number;
-  maxPrice: number;
 };

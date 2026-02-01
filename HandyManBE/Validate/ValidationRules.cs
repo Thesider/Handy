@@ -17,6 +17,7 @@ namespace Validate
             if (string.IsNullOrWhiteSpace(worker.PhoneNumber)) errors.Add("PhoneNumber is required.");
             if (worker.HourlyRate < 0) errors.Add("HourlyRate must be >= 0.");
             if (worker.Rating < 0 || worker.Rating > 5) errors.Add("Rating must be between 0 and 5.");
+            if (worker.YearsOfExperience < 0) errors.Add("YearsOfExperience must be >= 0.");
             if (worker.Address == null) errors.Add("Address is required.");
             else
             {
@@ -34,10 +35,6 @@ namespace Validate
 
             if (string.IsNullOrWhiteSpace(service.ServiceName)) errors.Add("ServiceName is required.");
             if (service.ServiceFee < 0) errors.Add("ServiceFee must be >= 0.");
-            if (service.MinPrice < 0) errors.Add("MinPrice must be >= 0.");
-            if (service.MaxPrice < 0) errors.Add("MaxPrice must be >= 0.");
-            if (service.MaxPrice > 0 && service.MinPrice > service.MaxPrice)
-                errors.Add("MinPrice must be <= MaxPrice.");
             if (service.TotalJobs < 0) errors.Add("TotalJobs must be >= 0.");
 
             return errors;

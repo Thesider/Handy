@@ -31,6 +31,7 @@ export type RegisterWorkerPayload = RegisterPayload & {
   firstName: string;
   lastName: string;
   phoneNumber: string;
+  yearsOfExperience: number;
   hourlyRate: number;
   address: {
     street: string;

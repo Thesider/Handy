@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { CustomerDashboardShell } from "../components/layout/CustomerDashboardShell";
 import { Button } from "../components/common/Button";
 import { Input } from "../components/common/Input";
@@ -7,9 +8,11 @@ import { getGigsByCustomer, createGig, acceptBid } from "../api/gigs.api";
 import type { JobGig } from "../api/gigs.api";
 import type { Service } from "../features/handyman/handyman.types";
 import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../context/ToastContext";
 
 export const CustomerGigsPage = () => {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [showForm, setShowForm] = useState(false);
     const [selectedGigId, setSelectedGigId] = useState<number | null>(null);
     const [services, setServices] = useState<Service[]>([]);
@@ -19,7 +22,14 @@ export const CustomerGigsPage = () => {
         title: "",
         description: "",
         budget: "",
-        serviceId: ""
+        serviceId: "",
+        numWorkersRequired: "1",
+        durationDays: "1",
+        street: "",
+        city: "",
+        state: "",
+        country: "VN",
+        postalCode: ""
     });
 
     const loadData = async () => {
@@ -51,14 +61,36 @@ export const CustomerGigsPage = () => {
                 budget: Number(newGig.budget),
                 serviceId: Number(newGig.serviceId),
                 customerId: user.id,
-                location: "VN, HCM" // Mock location
+                address: {
+                    street: newGig.street,
+                    city: newGig.city,
+                    state: newGig.state,
+                    country: newGig.country,
+                    postalCode: newGig.postalCode
+                },
+                numWorkersRequired: Number(newGig.numWorkersRequired),
+                durationDays: Number(newGig.durationDays)
             });
 
             loadData();
-            setNewGig({ title: "", description: "", budget: "", serviceId: "" });
+            setNewGig({
+                title: "",
+                description: "",
+                budget: "",
+                serviceId: "",
+                numWorkersRequired: "1",
+                durationDays: "1",
+                street: "",
+                city: "",
+                state: "",
+                country: "VN",
+                postalCode: ""
+            });
             setShowForm(false);
+            showToast("Job gig created successfully!", "success");
         } catch (err) {
             console.error("Failed to create gig:", err);
+            showToast("Failed to create job gig. Please try again.", "error");
         }
     };
 
@@ -66,9 +98,10 @@ export const CustomerGigsPage = () => {
         try {
             await acceptBid(jobGigId, bidId);
             loadData();
-            alert("Worker enrolled successfully! The job is now in progress.");
+            showToast("Worker enrolled successfully!", "success");
         } catch (err) {
             console.error("Failed to accept bid:", err);
+            showToast("Failed to enroll worker. Please try again.", "error");
         }
     };
 
@@ -136,12 +169,67 @@ export const CustomerGigsPage = () => {
                                         onChange={(e) => setNewGig({ ...newGig, description: e.target.value })}
                                     />
                                 </div>
+                                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <Input
+                                        label="Street Address"
+                                        placeholder="e.g. 123 ABC St"
+                                        value={newGig.street}
+                                        onChange={(e) => setNewGig({ ...newGig, street: e.target.value })}
+                                        required
+                                    />
+                                    <Input
+                                        label="City"
+                                        placeholder="e.g. HCM"
+                                        value={newGig.city}
+                                        onChange={(e) => setNewGig({ ...newGig, city: e.target.value })}
+                                        required
+                                    />
+                                    <Input
+                                        label="State / Region"
+                                        placeholder="e.g. District 1"
+                                        value={newGig.state}
+                                        onChange={(e) => setNewGig({ ...newGig, state: e.target.value })}
+                                    />
+                                </div>
+                                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Input
+                                        label="Postal Code (Optional)"
+                                        placeholder="e.g. 70000"
+                                        value={newGig.postalCode}
+                                        onChange={(e) => setNewGig({ ...newGig, postalCode: e.target.value })}
+                                    />
+                                    <Input
+                                        label="Country"
+                                        placeholder="e.g. VN"
+                                        value={newGig.country}
+                                        onChange={(e) => setNewGig({ ...newGig, country: e.target.value })}
+                                        required
+                                    />
+                                </div>
                                 <Input
-                                    label="Budget (VND)"
+                                    label="Budget per Day (VND)"
                                     type="number"
                                     placeholder="e.g. 500000"
                                     value={newGig.budget}
                                     onChange={(e) => setNewGig({ ...newGig, budget: e.target.value })}
+                                    required
+                                />
+                                <Input
+                                    label="Project Duration (Days)"
+                                    type="number"
+                                    min={1}
+                                    placeholder="Number of days..."
+                                    value={newGig.durationDays}
+                                    onChange={(e) => setNewGig({ ...newGig, durationDays: e.target.value })}
+                                    required
+                                />
+                                <Input
+                                    label="Workers Needed"
+                                    type="number"
+                                    min={1}
+                                    placeholder="Number of workers..."
+                                    value={newGig.numWorkersRequired}
+                                    onChange={(e) => setNewGig({ ...newGig, numWorkersRequired: e.target.value })}
                                     required
                                 />
                             </div>
@@ -165,7 +253,8 @@ export const CustomerGigsPage = () => {
                                     <p className="text-slate-500 text-sm mt-1">Posted on {new Date(activeGig.createdAtUtc).toLocaleDateString()}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-2xl font-black text-slate-900">{activeGig.budget.toLocaleString()} VND</p>
+                                    <p className="text-2xl font-black text-slate-900">{activeGig.budget.toLocaleString()} VND / day</p>
+                                    <p className="text-xs font-bold text-slate-400 uppercase mt-1">Total: {(activeGig.budget * activeGig.durationDays).toLocaleString()} VND ({activeGig.durationDays} days)</p>
                                     <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold mt-2 ${activeGig.status === "Open" ? "bg-green-100 text-green-700" :
                                         activeGig.status === "InProgress" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-700"
                                         }`}>
@@ -173,25 +262,45 @@ export const CustomerGigsPage = () => {
                                     </span>
                                 </div>
                             </div>
-                            <div className="border-t border-slate-50 pt-4">
-                                <p className="text-xs font-bold text-slate-400 uppercase mb-1">Details</p>
-                                <p className="text-slate-600 leading-relaxed max-w-3xl">
-                                    {activeGig.description || <span className="text-slate-400 font-medium italic select-none">N.A</span>}
-                                </p>
+                            <div className="border-t border-slate-50 pt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase mb-1">Details</p>
+                                    <p className="text-slate-600 leading-relaxed">
+                                        {activeGig.description || <span className="text-slate-400 font-medium italic select-none">N.A</span>}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase mb-1">Work Location</p>
+                                    <div className="flex items-start gap-2 text-slate-600">
+                                        <span className="material-symbols-outlined text-slate-400 text-[20px]">location_on</span>
+                                        <div>
+                                            <p className="font-bold">{activeGig.address.street}</p>
+                                            <p className="text-sm">{activeGig.address.city}, {activeGig.address.state}</p>
+                                            <p className="text-sm">{activeGig.address.country} {activeGig.address.postalCode}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <section className="flex flex-col gap-4">
                             <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary">groups</span>
-                                {activeGig.status === "InProgress" ? "Worker Enrolled" : `Applications (${activeGig.bids.length})`}
+                                {activeGig.status === "InProgress" ? "Team Enrolled" : `Applications (${activeGig.bids.length})`}
+                                <span className="text-sm font-normal text-slate-500 ml-2">
+                                    (Selected: {activeGig.bids.filter(b => b.isAccepted).length} / {activeGig.numWorkersRequired})
+                                </span>
                             </h3>
 
                             <div className="grid grid-cols-1 gap-4">
                                 {activeGig.bids.length > 0 ? (
                                     activeGig.bids.map((bid) => {
-                                        const isAccepted = activeGig.acceptedBidId === bid.bidId;
-                                        if (activeGig.status === "InProgress" && !isAccepted) return null;
+                                        const isAccepted = bid.isAccepted;
+                                        const acceptedCount = activeGig.bids.filter(b => b.isAccepted).length;
+                                        const needsMore = acceptedCount < activeGig.numWorkersRequired;
+
+                                        // If job is in progress, maybe show all accepted ones? 
+                                        // Or just show all bids but highlight accepted.
 
                                         return (
                                             <div key={bid.bidId} className={`rounded-xl border p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 transition-all ${isAccepted ? "border-primary bg-blue-50/30" : "border-slate-200 bg-white hover:border-slate-300 shadow-sm"
@@ -207,6 +316,13 @@ export const CustomerGigsPage = () => {
                                                                 <span className="material-symbols-outlined fill text-[14px]">star</span>
                                                                 <span className="text-xs font-bold text-slate-600">{bid.workerRating}</span>
                                                             </div>
+                                                            <Link
+                                                                to={`/handymen/${bid.workerId}`}
+                                                                className="ml-2 text-xs font-bold text-primary hover:underline flex items-center gap-0.5"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[14px]">visibility</span>
+                                                                View Profile
+                                                            </Link>
                                                         </div>
                                                         <p className="text-sm text-slate-600 mt-1 italic">"{bid.message}"</p>
                                                         <p className="text-xs text-slate-400 mt-2">{new Date(bid.createdAtUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
@@ -215,9 +331,9 @@ export const CustomerGigsPage = () => {
                                                 <div className="flex items-center gap-6 self-end sm:self-center">
                                                     <div className="text-right">
                                                         <p className="text-lg font-black text-slate-900">{bid.amount.toLocaleString()} VND</p>
-                                                        <p className="text-xs text-slate-500 uppercase font-bold tracking-tight">Proposed Price</p>
+                                                        <p className="text-xs text-slate-500 uppercase font-bold tracking-tight">Application Fee</p>
                                                     </div>
-                                                    {activeGig.status === "Open" && (
+                                                    {activeGig.status === "Open" && !isAccepted && needsMore && (
                                                         <Button onClick={() => handleAcceptBidAction(activeGig.jobGigId, bid.bidId)}>Enrol Worker</Button>
                                                     )}
                                                     {isAccepted && (
@@ -259,15 +375,25 @@ export const CustomerGigsPage = () => {
                                     <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
                                         {gig.description || "N.A"}
                                     </p>
+                                    <div className="flex items-center gap-1 text-xs text-slate-400 font-medium">
+                                        <span className="material-symbols-outlined text-sm">location_on</span>
+                                        {gig.address.city}, {gig.address.state}
+                                    </div>
 
                                     <div className="mt-2 flex items-center justify-between border-t border-slate-50 pt-4">
                                         <div className="flex flex-col">
-                                            <span className="text-[10px] text-slate-400 font-bold uppercase">Budget</span>
+                                            <span className="text-[10px] text-slate-400 font-bold uppercase">Budget / Day</span>
                                             <span className="font-bold text-slate-900">{gig.budget.toLocaleString()} VND</span>
+                                            <span className="text-[10px] text-slate-400 font-medium italic">{gig.durationDays} days</span>
                                         </div>
                                         <div className="flex flex-col text-right">
                                             <span className="text-[10px] text-slate-400 font-bold uppercase">{gig.status === "InProgress" ? "Selected" : "Applications"}</span>
-                                            <span className="font-bold text-slate-900">{gig.status === "InProgress" ? "1 Worker" : `${gig.bids.length}`}</span>
+                                            <span className="font-bold text-slate-900">
+                                                {gig.status === "InProgress"
+                                                    ? `${gig.bids.filter(b => b.isAccepted).length} Workers`
+                                                    : `${gig.bids.length} (Need ${gig.numWorkersRequired})`
+                                                }
+                                            </span>
                                         </div>
                                     </div>
                                     <Button variant="ghost" className="w-full mt-2 text-primary border border-primary/10 hover:bg-blue-50" onClick={() => setSelectedGigId(gig.jobGigId)}>

@@ -13,14 +13,10 @@ import styles from "./BookingForm.module.css";
 
 const bookingSchema = z.object({
     serviceId: z.number().min(1, "Select a service"),
-    minPrice: z.number().min(0, "Minimum price must be >= 0"),
-    maxPrice: z.number().min(0, "Maximum price must be >= 0"),
+    price: z.number().min(1000, "Price must be at least 1,000 VND"),
     startAt: z.string().min(1, "Select a start date and time"),
     endAt: z.string().min(1, "Select an end date and time"),
     notes: z.string().max(2000).optional(),
-}).refine((values) => values.maxPrice > values.minPrice, {
-    message: "Maximum price must be strictly greater than minimum price",
-    path: ["maxPrice"],
 }).refine((values) => new Date(values.endAt) > new Date(values.startAt), {
     message: "End time must be after start time",
     path: ["endAt"],
@@ -47,8 +43,7 @@ export const BookingForm = ({ workerId, services }: BookingFormProps) => {
     } = useForm<BookingFormValues>({
         resolver: zodResolver(bookingSchema),
         defaultValues: {
-            minPrice: 0,
-            maxPrice: 0,
+            price: 0,
         },
     });
 
@@ -62,8 +57,8 @@ export const BookingForm = ({ workerId, services }: BookingFormProps) => {
                 customerId,
                 workerId,
                 serviceId: values.serviceId,
-                minPrice: values.minPrice,
-                maxPrice: values.maxPrice,
+                minPrice: values.price, // Same as maxPrice for backend compatibility
+                maxPrice: values.price,
                 startAt: new Date(values.startAt).toISOString(),
                 endAt: new Date(values.endAt).toISOString(),
                 status: "Pending",
@@ -108,26 +103,19 @@ export const BookingForm = ({ workerId, services }: BookingFormProps) => {
                 ) : null}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className={styles.field}>
                 <Input
-                    label="Min Price (VND)"
-                    id="minPrice"
+                    label="Price Offer (VND)"
+                    id="price"
                     type="number"
-                    error={errors.minPrice?.message}
-                    {...register("minPrice", { valueAsNumber: true })}
-                    disabled={!isCustomer || isSubmitting}
-                />
-                <Input
-                    label="Max Price (VND)"
-                    id="maxPrice"
-                    type="number"
-                    error={errors.maxPrice?.message}
-                    {...register("maxPrice", { valueAsNumber: true })}
+                    placeholder="Enter your budget..."
+                    error={errors.price?.message}
+                    {...register("price", { valueAsNumber: true })}
                     disabled={!isCustomer || isSubmitting}
                 />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                     label="Start time"
                     type="datetime-local"

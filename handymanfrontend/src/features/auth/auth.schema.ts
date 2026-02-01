@@ -21,6 +21,9 @@ export const registerCustomerSchema = passwordConfirmSchema.extend({
 });
 
 export const registerWorkerSchema = registerCustomerSchema.extend({
+  yearsOfExperience: z
+    .number()
+    .min(0, "Years of experience must be 0 or more"),
   hourlyRate: z.number().min(0, "Hourly rate must be 0 or more"),
   address: z.object({
     street: z.string().min(2, "Street is required"),

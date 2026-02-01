@@ -3,6 +3,7 @@ namespace BussinessObject
     public class Worker
     {
         public int WorkerId { get; set; }
+        public int YearsOfExperience { get; set; } = 0;
         public bool IsAvailable { get; set; } = false;
         public decimal HourlyRate { get; set; }
         public decimal Rating { get; set; }

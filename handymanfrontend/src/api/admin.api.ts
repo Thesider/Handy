@@ -4,9 +4,6 @@ import type { Service, Worker } from "../features/handyman/handyman.types";
 
 export const getAdminWorkers = () => httpClient.get<Worker[]>("/api/workers");
 
-export const getAdminWorkerById = (id: number) =>
-  httpClient.get<Worker>(`/api/workers/${id}`);
-
 export const createAdminWorker = (payload: Omit<Worker, "workerId">) =>
   httpClient.post<Worker>("/api/workers", payload);
 
@@ -17,9 +14,6 @@ export const deleteAdminWorker = (id: number) =>
   httpClient.delete<void>(`/api/workers/${id}`);
 
 export const getAdminServices = () => httpClient.get<Service[]>("/api/services");
-
-export const getAdminServiceById = (id: number) =>
-  httpClient.get<Service>(`/api/services/${id}`);
 
 export const createAdminService = (payload: Omit<Service, "serviceId">) =>
   httpClient.post<Service>("/api/services", payload);
@@ -34,9 +28,6 @@ export const deleteAdminService = (id: number) =>
 
 export const getAdminCustomers = () =>
   httpClient.get<Customer[]>("/api/customers");
-
-export const getAdminCustomerById = (id: number) =>
-  httpClient.get<Customer>(`/api/customers/${id}`);
 
 export const createAdminCustomer = (payload: Omit<Customer, "customerId">) =>
   httpClient.post<Customer>("/api/customers", payload);
