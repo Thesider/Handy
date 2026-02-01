@@ -5,14 +5,15 @@ import { getGigs, addBid } from "../api/gigs.api";
 import type { JobGig } from "../api/gigs.api";
 import { useAuth } from "../hooks/useAuth";
 import { httpClient } from "../api/httpClient";
+import { useToast } from "../context/ToastContext";
 
 export const JobBoardPage = () => {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<"feed" | "my-gigs">("feed");
     const [gigs, setGigs] = useState<JobGig[]>([]);
 
     const [biddingGigId, setBiddingGigId] = useState<number | null>(null);
-    const [bidAmount, setBidAmount] = useState("");
     const [bidMessage, setBidMessage] = useState("");
     const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
 
@@ -29,22 +30,21 @@ export const JobBoardPage = () => {
         loadGigs();
     }, []);
 
-    const handleEnroll = async (jobGigId: number) => {
+    const handleEnroll = async (jobGigId: number, amount: number) => {
         if (!user?.id) return;
 
         try {
             await addBid({
                 jobGigId,
                 workerId: user.id,
-                amount: Number(bidAmount),
+                amount: amount,
                 message: bidMessage
             });
 
             await loadGigs();
             setBiddingGigId(null);
-            setBidAmount("");
             setBidMessage("");
-            alert("Success! You've enrolled for this job. You can now communicate with the customer.");
+            showToast("Success! You've enrolled for this job. You can now communicate with the customer.", "success");
             setActiveTab("my-gigs");
         } catch (err) {
             console.error("Failed to add bid:", err);
@@ -64,10 +64,10 @@ export const JobBoardPage = () => {
 
             // Reload gigs to get updated status
             await loadGigs();
-            alert(newStatus === "Completed" ? "Job marked as completed!" : "Job started!");
+            showToast(newStatus === "Completed" ? "Job marked as completed!" : "Job started!", "success");
         } catch (err) {
             console.error("Failed to update status:", err);
-            alert("Failed to update job status. Please try again.");
+            showToast("Failed to update job status. Please try again.", "error");
         } finally {
             setUpdatingStatusId(null);
         }
@@ -128,13 +128,14 @@ export const JobBoardPage = () => {
                                                 </div>
                                                 <div className="flex items-center gap-1.5 font-medium">
                                                     <span className="material-symbols-outlined text-[18px] text-slate-400">location_on</span>
-                                                    {gig.location}
+                                                    {gig.address.city}, {gig.address.state}
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="text-right flex flex-col items-end">
-                                            <span className="text-2xl font-black text-slate-900 leading-none">{gig.budget.toLocaleString()} VND</span>
-                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">Est. Budget</span>
+                                            <span className="text-2xl font-black text-slate-900 leading-none">{gig.budget.toLocaleString()} VND / day</span>
+                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">Est. Budget ({gig.durationDays} days)</span>
+                                            <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-tighter">Total: {(gig.budget * gig.durationDays).toLocaleString()} VND</span>
                                         </div>
                                     </div>
 
@@ -150,34 +151,53 @@ export const JobBoardPage = () => {
 
                                     {biddingGigId === gig.jobGigId && (
                                         <div className="mt-4 flex flex-col gap-5 rounded-2xl bg-slate-50 p-6 border border-slate-200 animate-in zoom-in-95 duration-200">
-                                            <div className="flex items-center gap-2">
-                                                <span className="material-symbols-outlined text-primary">send</span>
-                                                <h4 className="font-bold text-slate-900 text-lg">Apply for this job</h4>
-                                            </div>
-                                            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-                                                <div className="flex flex-col gap-1.5">
-                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Your Proposal (VND)</label>
-                                                    <input
-                                                        type="number"
-                                                        className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all"
-                                                        placeholder="e.g. 450000"
-                                                        value={bidAmount}
-                                                        onChange={(e) => setBidAmount(e.target.value)}
-                                                    />
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-primary">send</span>
+                                                    <h4 className="font-bold text-slate-900 text-lg">Confirm Enrollment</h4>
                                                 </div>
-                                                <div className="flex flex-col gap-1.5 md:col-span-2">
-                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Offer Note</label>
-                                                    <textarea
-                                                        className="min-h-[48px] w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all"
-                                                        placeholder="Why should the customer choose you?"
-                                                        value={bidMessage}
-                                                        onChange={(e) => setBidMessage(e.target.value)}
-                                                    />
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
+                                                    <span className="material-symbols-outlined text-[16px]">location_on</span>
+                                                    {gig.address.street}, {gig.address.city}
                                                 </div>
                                             </div>
+
+                                            <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-wrap gap-6 items-center">
+                                                <div className="flex-1 min-w-[120px]">
+                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Rate / Day</p>
+                                                    <p className="text-lg font-bold text-slate-900">{gig.budget.toLocaleString()} VND</p>
+                                                    <p className="text-[10px] text-slate-400 font-medium italic">{gig.durationDays} working days</p>
+                                                </div>
+                                                <div className="flex-1 min-w-[120px]">
+                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Budget</p>
+                                                    <p className="text-lg font-bold text-slate-900">{(gig.budget * gig.durationDays).toLocaleString()} VND</p>
+                                                </div>
+                                                <div className="flex-1 min-w-[120px]">
+                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Service Fee (10%)</p>
+                                                    <p className="text-sm font-bold text-red-500">-{(gig.budget * gig.durationDays * 0.1).toLocaleString()} VND</p>
+                                                </div>
+                                                <div className="flex-1 min-w-[120px] border-l pl-6 border-slate-100">
+                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Net Total Earnings</p>
+                                                    <p className="text-xl font-black text-emerald-600">{(gig.budget * gig.durationDays * 0.9).toLocaleString()} VND</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Offer Note / Message</label>
+                                                <textarea
+                                                    className="min-h-[100px] w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all"
+                                                    placeholder="Tell the customer why you're a good fit for this job (optional)..."
+                                                    value={bidMessage}
+                                                    onChange={(e) => setBidMessage(e.target.value)}
+                                                />
+                                            </div>
+
                                             <div className="flex justify-end gap-3 pt-2">
-                                                <Button variant="ghost" className="font-bold" onClick={() => setBiddingGigId(null)}>Cancel</Button>
-                                                <Button className="px-10" onClick={() => handleEnroll(gig.jobGigId)}>Submit Application</Button>
+                                                <Button variant="ghost" className="font-bold" onClick={() => {
+                                                    setBiddingGigId(null);
+                                                    setBidMessage("");
+                                                }}>Cancel</Button>
+                                                <Button className="px-10" onClick={() => handleEnroll(gig.jobGigId, gig.budget)}>Enroll for {gig.budget.toLocaleString()} VND</Button>
                                             </div>
                                         </div>
                                     )}
@@ -194,12 +214,12 @@ export const JobBoardPage = () => {
                         enrolledGigs.length > 0 ? (
                             enrolledGigs.map((gig) => {
                                 const myBid = gig.bids.find(b => b.workerId === user?.id);
-                                const isAccepted = gig.acceptedBidId === myBid?.bidId;
+                                const isAccepted = myBid?.isAccepted;
 
                                 return (
-                                    <div key={gig.jobGigId} className={`relative flex flex-col gap-4 rounded-2xl border p-6 shadow-md transition-all ${isAccepted ? "border-emerald-500 bg-emerald-50/10" : "border-primary bg-white"
+                                    <div key={gig.jobGigId} className={`relative flex flex-col gap-4 rounded-2xl border p-6 shadow-md transition-all ${isAccepted ? "border-emerald-500 bg-emerald-50/10" : "border-blue-600 bg-white"
                                         }`}>
-                                        <div className={`absolute -top-3 right-6 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg ${isAccepted ? "bg-emerald-500 shadow-emerald-500/30" : "bg-primary shadow-primary/30"
+                                        <div className={`absolute -top-3 right-6 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg ${isAccepted ? "bg-emerald-500 shadow-emerald-500/30" : "bg-blue-600 shadow-blue-500/30"
                                             }`}>
                                             {isAccepted ? "Accepted" : "Application Sent"}
                                         </div>
@@ -207,6 +227,10 @@ export const JobBoardPage = () => {
                                             <div className="flex flex-col gap-1">
                                                 <h3 className="text-xl font-bold text-slate-900">{gig.title}</h3>
                                                 <p className="text-sm text-slate-500 font-medium italic">Applied to {gig.customerName}</p>
+                                                <div className="flex items-center gap-1.5 text-sm text-slate-500 font-medium">
+                                                    <span className="material-symbols-outlined text-[18px] text-slate-400">location_on</span>
+                                                    {gig.address.street}, {gig.address.city}
+                                                </div>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase">Your Bid</p>
@@ -218,8 +242,8 @@ export const JobBoardPage = () => {
                                                 <>
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${gig.status === "InProgress" ? "bg-blue-100 text-blue-700" :
-                                                                gig.status === "Completed" ? "bg-emerald-100 text-emerald-700" :
-                                                                    "bg-slate-100 text-slate-600"
+                                                            gig.status === "Completed" ? "bg-emerald-100 text-emerald-700" :
+                                                                "bg-slate-100 text-slate-600"
                                                             }`}>
                                                             {gig.status}
                                                         </span>

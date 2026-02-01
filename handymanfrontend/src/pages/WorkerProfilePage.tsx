@@ -451,8 +451,10 @@ export const WorkerProfilePage = () => {
                                             </div>
                                             <div className="text-right">
                                                 <p className="font-bold text-slate-900">
-                                                    {request.minPrice || request.maxPrice
-                                                        ? `${formatVnd(request.minPrice)} - ${formatVnd(request.maxPrice)}`
+                                                    {request.maxPrice > 0
+                                                        ? request.minPrice === request.maxPrice
+                                                            ? formatVnd(request.maxPrice)
+                                                            : `${formatVnd(request.minPrice)} - ${formatVnd(request.maxPrice)}`
                                                         : formatVnd(request.amount)}
                                                 </p>
                                                 <p className="text-xs text-slate-500">Est.</p>

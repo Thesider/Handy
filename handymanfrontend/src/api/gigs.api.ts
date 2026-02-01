@@ -1,4 +1,5 @@
 import { httpClient } from "./httpClient";
+import type { Address } from "../features/handyman/handyman.types";
 
 export type Bid = {
     bidId: number;
@@ -7,6 +8,7 @@ export type Bid = {
     workerName: string;
     amount: number;
     message: string;
+    isAccepted: boolean;
     createdAtUtc: string;
     workerRating: number;
 };
@@ -19,10 +21,12 @@ export type JobGig = {
     serviceType: string;
     customerId: number;
     customerName: string;
-    location: string;
+    address: Address;
     status: "Open" | "InProgress" | "Completed" | "Closed";
     createdAtUtc: string;
-    acceptedBidId?: number;
+    // acceptedBidId?: number;
+    numWorkersRequired: number;
+    durationDays: number;
     bids: Bid[];
 };
 
@@ -38,7 +42,9 @@ export const createGig = (gig: {
     budget: number;
     serviceId: number;
     customerId: number;
-    location: string;
+    address: Address;
+    numWorkersRequired: number;
+    durationDays: number;
 }) => httpClient.post<JobGig>("/api/job-gigs", gig);
 
 export const addBid = (bid: {

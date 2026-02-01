@@ -163,7 +163,11 @@ export const BookingHistoryPage = () => {
 
                                 <div className={styles.cardRight}>
                                     <div className={styles.price}>
-                                        {booking.amount > 0 ? formatVnd(booking.amount) : "TBD"}
+                                        {booking.amount > 0
+                                            ? formatVnd(booking.amount)
+                                            : booking.maxPrice > 0
+                                                ? `Offer: ${formatVnd(booking.maxPrice)}`
+                                                : "TBD"}
                                     </div>
                                     <div className={styles.actions}>
                                         {canCancel && (

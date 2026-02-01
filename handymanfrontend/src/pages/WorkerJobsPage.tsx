@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { WorkerDashboardShell } from "../components/layout/WorkerDashboardShell";
 import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../context/ToastContext";
 import { getBookingsByWorker, updateBookingStatus } from "../api/booking.api";
 import { getServices } from "../api/handyman.api";
 import type { Booking, BookingStatus } from "../features/booking/booking.types";
@@ -8,6 +9,7 @@ import type { Service } from "../features/handyman/handyman.types";
 
 export const WorkerJobsPage = () => {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(false);
@@ -96,8 +98,9 @@ export const WorkerJobsPage = () => {
                     booking.bookingId === bookingId ? { ...booking, status } : booking
                 )
             );
+            showToast(`Job status updated to ${status}!`, "success");
         } catch {
-            setError("Failed to update job status.");
+            showToast("Failed to update job status.", "error");
         } finally {
             setUpdatingId(null);
         }
@@ -171,7 +174,11 @@ export const WorkerJobsPage = () => {
                                             <div className="flex items-center gap-2 text-slate-500">
                                                 <span className="material-symbols-outlined text-lg">payments</span>
                                                 <span className="font-bold text-slate-900">
-                                                    {booking.amount > 0 ? formatVnd(booking.amount) : "Quote Required"}
+                                                    {booking.amount > 0
+                                                        ? formatVnd(booking.amount)
+                                                        : booking.maxPrice > 0
+                                                            ? `Offer: ${formatVnd(booking.maxPrice)}`
+                                                            : "Quote Required"}
                                                 </span>
                                             </div>
                                         </div>

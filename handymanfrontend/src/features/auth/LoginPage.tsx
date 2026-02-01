@@ -44,17 +44,26 @@ export const LoginPage = () => {
     return (
         <div className={styles.container}>
             <div className={styles.card}>
-                <h1>Welcome back</h1>
-                <p>Sign in to manage bookings or your worker profile.</p>
-                <div className={styles.inlineActions}>
-                    <Link to="/auth/register/customer">Create customer account</Link>
-                    <Link to="/auth/register/worker">Join as worker</Link>
-                    <Link to="/handymen">Browse as guest</Link>
+                <div className="flex flex-col items-center text-center mb-8">
+                    <div className="size-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 text-primary">
+                        <span className="material-symbols-outlined text-4xl">lock_open</span>
+                    </div>
+                    <h1>Welcome back</h1>
+                    <p>Enter your credentials to access your account</p>
                 </div>
+
+                {error ? (
+                    <div className={`${styles.error} mb-6`}>
+                        <span className="material-symbols-outlined text-lg">error</span>
+                        {error}
+                    </div>
+                ) : null}
+
                 <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
                     <Input
-                        label="Email"
+                        label="Email Address"
                         type="email"
+                        placeholder="e.g. alex@example.com"
                         autoComplete="email"
                         error={errors.email?.message}
                         {...register("email")}
@@ -62,15 +71,43 @@ export const LoginPage = () => {
                     <Input
                         label="Password"
                         type="password"
+                        placeholder="••••••••"
                         autoComplete="current-password"
                         error={errors.password?.message}
                         {...register("password")}
                     />
-                    {error ? <div className={styles.error}>{error}</div> : null}
+
+                    <div className="flex items-center justify-end">
+                        <Link to="/auth/forgot-password" className="text-xs font-semibold text-primary hover:underline">
+                            Forgot password?
+                        </Link>
+                    </div>
+
                     <Button type="submit" fullWidth disabled={isSubmitting}>
-                        {isSubmitting ? "Signing in..." : "Sign in"}
+                        {isSubmitting ? (
+                            <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                                Signing in...
+                            </div>
+                        ) : (
+                            "Sign In"
+                        )}
                     </Button>
                 </form>
+
+                <div className={styles.divider}>OR</div>
+
+                <div className={styles.inlineActions}>
+                    Don't have an account?
+                    <Link to="/auth/register">Create one</Link>
+                </div>
+
+                <Link to="/handymen" className={styles.guestLink}>
+                    <span className="flex items-center justify-center gap-1">
+                        <span className="material-symbols-outlined text-sm">arrow_back</span>
+                        Back to browsing
+                    </span>
+                </Link>
             </div>
         </div>
     );

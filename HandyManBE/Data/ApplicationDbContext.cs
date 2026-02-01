@@ -104,6 +104,7 @@ namespace HandyManBE.Data
                 entity.HasOne(jg => jg.Service)
                     .WithMany()
                     .HasForeignKey(jg => jg.ServiceId);
+                entity.OwnsOne(jg => jg.Address);
             });
 
             modelBuilder.Entity<Bid>(entity =>

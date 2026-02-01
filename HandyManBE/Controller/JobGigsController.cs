@@ -68,7 +68,7 @@ namespace HandyManBE.Controller
                     return BadRequest(new { error = "CustomerId is required" });
                 }
 
-                Console.WriteLine($"Creating job gig - Title: {dto.Title}, ServiceId: {dto.ServiceId}, CustomerId: {dto.CustomerId}, Budget: {dto.Budget}, Location: {dto.Location}");
+                Console.WriteLine($"Creating job gig - Title: {dto.Title}, Work Location: {dto.Address.Street}, {dto.Address.City}");
 
                 var created = await _jobGigService.CreateAsync(DtoMapper.ToEntity(dto));
                 

@@ -15,9 +15,8 @@ namespace HandyManBE.DTOs
         [StringLength(100)]
         public string? State { get; set; }
 
-        [Required]
         [StringLength(20)]
-        public string PostalCode { get; set; }
+        public string? PostalCode { get; set; }
 
         [StringLength(100)]
         public string? Country { get; set; }

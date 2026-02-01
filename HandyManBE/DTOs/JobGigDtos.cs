@@ -14,10 +14,12 @@ namespace HandyManBE.DTOs
         public string ServiceType { get; set; } = string.Empty;
         public int CustomerId { get; set; }
         public string CustomerName { get; set; } = string.Empty;
-        public string Location { get; set; } = string.Empty;
+        public AddressDto Address { get; set; } = new AddressDto();
         public JobGigStatus Status { get; set; }
         public DateTime CreatedAtUtc { get; set; }
-        public int? AcceptedBidId { get; set; }
+        // public int? AcceptedBidId { get; set; }
+        public int NumWorkersRequired { get; set; }
+        public int DurationDays { get; set; }
         public List<BidDto> Bids { get; set; } = new List<BidDto>();
     }
 
@@ -29,6 +31,7 @@ namespace HandyManBE.DTOs
         public string WorkerName { get; set; } = string.Empty;
         public decimal Amount { get; set; }
         public string Message { get; set; } = string.Empty;
+        public bool IsAccepted { get; set; }
         public DateTime CreatedAtUtc { get; set; }
         public decimal WorkerRating { get; set; }
     }
@@ -40,7 +43,9 @@ namespace HandyManBE.DTOs
         public decimal Budget { get; set; }
         public int ServiceId { get; set; }
         public int CustomerId { get; set; }
-        public string Location { get; set; } = string.Empty;
+        public AddressDto Address { get; set; } = new AddressDto();
+        public int NumWorkersRequired { get; set; } = 1;
+        public int DurationDays { get; set; } = 1;
     }
 
     public class BidCreateDto
