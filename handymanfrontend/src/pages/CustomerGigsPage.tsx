@@ -152,6 +152,7 @@ export const CustomerGigsPage = () => {
                                         className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all appearance-none cursor-pointer"
                                         value={newGig.serviceId}
                                         onChange={(e) => setNewGig({ ...newGig, serviceId: e.target.value })}
+                                        title="Service type"
                                         required
                                     >
                                         <option value="">Select a service...</option>

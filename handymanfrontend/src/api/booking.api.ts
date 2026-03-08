@@ -5,6 +5,11 @@ import type {
   BookingStatus,
 } from "../features/booking/booking.types.ts";
 
+export type CapturePaymentPayload = {
+  paymentReference: string;
+  finalAmount: number;
+};
+
 export const getBookings = () => httpClient.get<Booking[]>("/api/bookings");
 
 export const getBookingsByCustomer = (customerId: number) =>
@@ -21,3 +26,18 @@ export const createBooking = (payload: BookingCreatePayload) =>
 
 export const updateBookingStatus = (id: number, status: BookingStatus) =>
   httpClient.put<void>(`/api/bookings/${id}/status`, status);
+
+export const workerAcceptBooking = (id: number) =>
+  httpClient.put<void>(`/api/bookings/${id}/worker-accept`, {});
+
+export const customerConfirmBooking = (id: number) =>
+  httpClient.put<void>(`/api/bookings/${id}/customer-confirm`, {});
+
+export const startBooking = (id: number) =>
+  httpClient.put<void>(`/api/bookings/${id}/start`, {});
+
+export const completeBooking = (id: number) =>
+  httpClient.put<void>(`/api/bookings/${id}/complete`, {});
+
+export const captureBookingPayment = (id: number, payload: CapturePaymentPayload) =>
+  httpClient.put<void>(`/api/bookings/${id}/capture-payment`, payload);

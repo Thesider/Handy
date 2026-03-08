@@ -7,6 +7,38 @@ export type Customer = {
   password?: string;
 };
 
+export type ModerationVerificationStatus =
+  | "Unverified"
+  | "Pending"
+  | "Verified"
+  | "Rejected";
+
+export type ModerationRole = "Worker" | "Customer";
+
+export type ModerationUser = {
+  role: ModerationRole;
+  id: number;
+  name: string;
+  email: string;
+  isBlocked: boolean;
+  isApprovedByAdmin: boolean;
+  requiresAdminPreApproval: boolean;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  idVerificationStatus: ModerationVerificationStatus;
+};
+
+export type ModerationUsersResponse = {
+  workers: ModerationUser[];
+  customers: ModerationUser[];
+};
+
+export type AdminUserModerationUpdatePayload = {
+  isBlocked: boolean;
+  isApprovedByAdmin: boolean;
+  idVerificationStatus: ModerationVerificationStatus;
+};
+
 export type AdminUser = {
   adminId: number;
   firstName: string;

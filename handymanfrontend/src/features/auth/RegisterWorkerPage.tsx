@@ -90,13 +90,6 @@ export const RegisterWorkerPage = () => {
 
                     <div className={styles.row}>
                         <Input
-                            label="Experience (Years)"
-                            type="number"
-                            placeholder="e.g. 5"
-                            error={errors.yearsOfExperience?.message}
-                            {...register("yearsOfExperience", { valueAsNumber: true })}
-                        />
-                        <Input
                             label="Rate (VND/hr)"
                             type="number"
                             placeholder="e.g. 200000"

@@ -149,7 +149,7 @@ export const HandymanDetailPage = () => {
                                     </div>
 
                                     {/* Stats Grid */}
-                                    <div className="mt-6 grid grid-cols-3 divide-x divide-slate-100 rounded-xl border border-slate-100 bg-white shadow-sm">
+                                    <div className="mt-6 grid grid-cols-2 divide-x divide-slate-100 rounded-xl border border-slate-100 bg-white shadow-sm">
                                         <div className="p-4 text-center">
                                             <div className="flex items-center justify-center gap-1 font-bold text-slate-900">
                                                 <span className="material-symbols-outlined filled text-amber-400 mb-0.5 text-xl">
@@ -159,14 +159,6 @@ export const HandymanDetailPage = () => {
                                             </div>
                                             <div className="mt-0.5 text-xs font-medium text-slate-500">
                                                 Đánh giá
-                                            </div>
-                                        </div>
-                                        <div className="p-4 text-center">
-                                            <div className="font-bold text-slate-900">
-                                                {worker.yearsOfExperience}+
-                                            </div>
-                                            <div className="mt-0.5 text-xs font-medium text-slate-500">
-                                                Năm kinh nghiệm
                                             </div>
                                         </div>
                                         <div className="p-4 text-center">

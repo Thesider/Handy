@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { getBookingsByWorker, updateBookingStatus } from "../api/booking.api";
+import { getBookingsByWorker, updateBookingStatus, workerAcceptBooking } from "../api/booking.api";
 import { getServices, getWorkerById, updateWorker } from "../api/handyman.api";
 import type { Booking } from "../features/booking/booking.types";
-import type { Service, Worker } from "../features/handyman/handyman.types";
+import type { Service, Worker, WorkerAcceptanceMetrics } from "../features/handyman/handyman.types";
 import { WorkerDashboardShell } from "../components/layout/WorkerDashboardShell";
 import styles from "./WorkerProfilePage.module.css";
+import { getWorkerMetrics } from "../api/workers.api";
+import { METRICS_THRESHOLDS } from "../utils/constants";
 
 export const WorkerProfilePage = () => {
     const { user } = useAuth();
@@ -16,6 +18,7 @@ export const WorkerProfilePage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [updatingBookingId, setUpdatingBookingId] = useState<number | null>(null);
+    const [metrics, setMetrics] = useState<WorkerAcceptanceMetrics | null>(null);
 
     useEffect(() => {
         if (user?.role !== "Worker") {
@@ -47,10 +50,12 @@ export const WorkerProfilePage = () => {
                     getServices(),
                     getBookingsByWorker(workerId),
                 ]);
+                const metricsData = await getWorkerMetrics(workerId);
                 if (!isMounted) return;
                 setWorker(workerData);
                 setServices(serviceData);
                 setBookings(bookingData);
+                setMetrics(metricsData);
             } catch {
                 if (!isMounted) return;
                 setError("Không thể tải hồ sơ thợ lúc này.");
@@ -93,7 +98,7 @@ export const WorkerProfilePage = () => {
         return workerBookings
             .filter(
                 (booking) =>
-                    (booking.status === "Confirmed" || booking.status === "InProgress") &&
+                    (booking.status === "CustomerConfirmed" || booking.status === "InProgress") &&
                     new Date(booking.startAt).getTime() >= now
             )
             .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
@@ -122,10 +127,14 @@ export const WorkerProfilePage = () => {
             maximumFractionDigits: 0,
         }).format(value);
 
-    const handleRequestUpdate = async (bookingId: number, nextStatus: "Confirmed" | "Declined") => {
+    const handleRequestUpdate = async (bookingId: number, nextStatus: "WorkerAccepted" | "Declined") => {
         try {
             setUpdatingBookingId(bookingId);
-            await updateBookingStatus(bookingId, nextStatus);
+            if (nextStatus === "WorkerAccepted") {
+                await workerAcceptBooking(bookingId);
+            } else {
+                await updateBookingStatus(bookingId, nextStatus);
+            }
             setBookings((previous) =>
                 previous.map((booking) =>
                     booking.bookingId === bookingId
@@ -177,6 +186,8 @@ export const WorkerProfilePage = () => {
     const headlineName = worker?.firstName ?? displayName.split(" ")[0] ?? "HandyHelper";
     const statusOnline = worker?.isAvailable ?? false;
     const ratingValue = worker?.rating ?? 0;
+    const responseRateGood = (metrics?.responseAcceptanceRatePercent ?? 0) >= METRICS_THRESHOLDS.responseAcceptanceRateGood;
+    const responseTimeGood = (metrics?.averageResponseTimeMinutes ?? Number.MAX_VALUE) <= METRICS_THRESHOLDS.avgResponseMinutesGood;
 
     return (
         <WorkerDashboardShell>
@@ -254,6 +265,36 @@ export const WorkerProfilePage = () => {
                     <div className="flex items-end gap-2">
                         <p className="text-2xl font-bold leading-tight text-slate-900">
                             {ratingValue.toFixed(1)}
+                        </p>
+                    </div>
+                </div>
+                <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-slate-500">
+                            Response Acceptance
+                        </p>
+                        <span className={`text-xs font-semibold ${responseRateGood ? "text-emerald-600" : "text-rose-600"}`}>
+                            {responseRateGood ? "GREEN" : "RED"}
+                        </span>
+                    </div>
+                    <div className="flex items-end gap-2">
+                        <p className="text-2xl font-bold leading-tight text-slate-900">
+                            {(metrics?.responseAcceptanceRatePercent ?? 0).toFixed(1)}%
+                        </p>
+                    </div>
+                </div>
+                <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-slate-500">
+                            Avg Response Time
+                        </p>
+                        <span className={`text-xs font-semibold ${responseTimeGood ? "text-emerald-600" : "text-rose-600"}`}>
+                            {responseTimeGood ? "GREEN" : "RED"}
+                        </span>
+                    </div>
+                    <div className="flex items-end gap-2">
+                        <p className="text-2xl font-bold leading-tight text-slate-900">
+                            {(metrics?.averageResponseTimeMinutes ?? 0).toFixed(1)}m
                         </p>
                     </div>
                 </div>
@@ -451,11 +492,9 @@ export const WorkerProfilePage = () => {
                                             </div>
                                             <div className="text-right">
                                                 <p className="font-bold text-slate-900">
-                                                    {request.maxPrice > 0
-                                                        ? request.minPrice === request.maxPrice
-                                                            ? formatVnd(request.maxPrice)
-                                                            : `${formatVnd(request.minPrice)} - ${formatVnd(request.maxPrice)}`
-                                                        : formatVnd(request.amount)}
+                                                    {request.amount > 0
+                                                        ? formatVnd(request.amount)
+                                                        : formatVnd(request.price)}
                                                 </p>
                                                 <p className="text-xs text-slate-500">Est.</p>
                                             </div>
@@ -474,7 +513,7 @@ export const WorkerProfilePage = () => {
                                             <button
                                                 className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                                                 disabled={updatingBookingId === request.bookingId}
-                                                onClick={() => handleRequestUpdate(request.bookingId, "Confirmed")}
+                                                onClick={() => handleRequestUpdate(request.bookingId, "WorkerAccepted")}
                                             >
                                                 Accept
                                             </button>

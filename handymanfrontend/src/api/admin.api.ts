@@ -1,5 +1,9 @@
 import { httpClient } from "./httpClient";
-import type { Customer } from "../features/admin/admin.types";
+import type {
+  AdminUserModerationUpdatePayload,
+  Customer,
+  ModerationUsersResponse,
+} from "../features/admin/admin.types";
 import type { Service, Worker } from "../features/handyman/handyman.types";
 
 export const getAdminWorkers = () => httpClient.get<Worker[]>("/api/workers");
@@ -39,3 +43,18 @@ export const updateAdminCustomer = (
 
 export const deleteAdminCustomer = (id: number) =>
   httpClient.delete<void>(`/api/customers/${id}`);
+
+export const getModerationUsers = () =>
+  httpClient.get<ModerationUsersResponse>("/api/admins/moderation/users");
+
+export const updateWorkerModeration = (
+  workerId: number,
+  payload: AdminUserModerationUpdatePayload
+) =>
+  httpClient.put<void>(`/api/admins/moderation/worker/${workerId}`, payload);
+
+export const updateCustomerModeration = (
+  customerId: number,
+  payload: AdminUserModerationUpdatePayload
+) =>
+  httpClient.put<void>(`/api/admins/moderation/customer/${customerId}`, payload);

@@ -34,7 +34,6 @@ export const AdminPage = () => {
         lastName: "",
         email: "",
         phoneNumber: "",
-        yearsOfExperience: 0,
         hourlyRate: 0,
         rating: 0,
         isAvailable: false,
@@ -90,7 +89,6 @@ export const AdminPage = () => {
             lastName: "",
             email: "",
             phoneNumber: "",
-            yearsOfExperience: 0,
             hourlyRate: 0,
             rating: 0,
             isAvailable: false,
@@ -265,12 +263,7 @@ export const AdminPage = () => {
                                     value={workerForm.phoneNumber}
                                     onChange={(event) => setWorkerForm({ ...workerForm, phoneNumber: event.target.value })}
                                 />
-                                <Input
-                                    label="Experience (Years)"
-                                    type="number"
-                                    value={workerForm.yearsOfExperience}
-                                    onChange={(event) => setWorkerForm({ ...workerForm, yearsOfExperience: Number(event.target.value) })}
-                                />
+
                                 <Input
                                     label="Hourly Rate (VND)"
                                     type="number"
@@ -313,7 +306,7 @@ export const AdminPage = () => {
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-slate-900">{worker.firstName} {worker.lastName}</span>
-                                                <span className="text-xs text-slate-500">{worker.yearsOfExperience} years exp.</span>
+
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -338,7 +331,7 @@ export const AdminPage = () => {
                                                             lastName: worker.lastName,
                                                             email: worker.email,
                                                             phoneNumber: worker.phoneNumber,
-                                                            yearsOfExperience: worker.yearsOfExperience,
+
                                                             hourlyRate: worker.hourlyRate,
                                                             rating: worker.rating,
                                                             isAvailable: worker.isAvailable,

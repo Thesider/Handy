@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { WorkerDashboardShell } from "../components/layout/WorkerDashboardShell";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
-import { getBookingsByWorker, updateBookingStatus } from "../api/booking.api";
+import { completeBooking, getBookingsByWorker, startBooking, updateBookingStatus, workerAcceptBooking } from "../api/booking.api";
 import { getServices } from "../api/handyman.api";
 import type { Booking, BookingStatus } from "../features/booking/booking.types";
 import type { Service } from "../features/handyman/handyman.types";
+import { BOOKING_STATUS_LABELS } from "../utils/constants";
 
 export const WorkerJobsPage = () => {
     const { user } = useAuth();
@@ -85,14 +86,22 @@ export const WorkerJobsPage = () => {
 
     const handleStatusChange = async (bookingId: number, status: BookingStatus) => {
         const confirmMsg = status === "Declined" ? "Are you sure you want to decline this job?" :
-            status === "Confirmed" ? "Accept this booking request?" :
+            status === "WorkerAccepted" ? "Accept this booking request?" :
                 status === "Completed" ? "Mark this job as completed?" : null;
 
         if (confirmMsg && !window.confirm(confirmMsg)) return;
 
         try {
             setUpdatingId(bookingId);
-            await updateBookingStatus(bookingId, status);
+            if (status === "WorkerAccepted") {
+                await workerAcceptBooking(bookingId);
+            } else if (status === "InProgress") {
+                await startBooking(bookingId);
+            } else if (status === "Completed") {
+                await completeBooking(bookingId);
+            } else {
+                await updateBookingStatus(bookingId, status);
+            }
             setBookings((previous) =>
                 previous.map((booking) =>
                     booking.bookingId === bookingId ? { ...booking, status } : booking
@@ -109,7 +118,8 @@ export const WorkerJobsPage = () => {
     const getStatusStyles = (status: BookingStatus) => {
         switch (status) {
             case "Pending": return "bg-amber-100 text-amber-700 border-amber-200";
-            case "Confirmed": return "bg-emerald-100 text-emerald-700 border-emerald-200";
+            case "WorkerAccepted": return "bg-emerald-100 text-emerald-700 border-emerald-200";
+            case "CustomerConfirmed": return "bg-green-100 text-green-700 border-green-200";
             case "InProgress": return "bg-blue-100 text-blue-700 border-blue-200";
             case "Completed": return "bg-slate-100 text-slate-600 border-slate-200";
             case "Cancelled": return "bg-rose-100 text-rose-700 border-rose-200";
@@ -149,7 +159,7 @@ export const WorkerJobsPage = () => {
                                     <div className="flex-1 space-y-4">
                                         <div className="flex items-center gap-3">
                                             <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusStyles(booking.status)}`}>
-                                                {booking.status}
+                                                {BOOKING_STATUS_LABELS[booking.status]}
                                             </span>
                                             <span className="text-sm text-slate-400 font-medium tracking-wide">
                                                 JOB #{booking.bookingId}
@@ -176,8 +186,8 @@ export const WorkerJobsPage = () => {
                                                 <span className="font-bold text-slate-900">
                                                     {booking.amount > 0
                                                         ? formatVnd(booking.amount)
-                                                        : booking.maxPrice > 0
-                                                            ? `Offer: ${formatVnd(booking.maxPrice)}`
+                                                        : booking.price > 0
+                                                            ? `Offer: ${formatVnd(booking.price)}`
                                                             : "Quote Required"}
                                                 </span>
                                             </div>
@@ -194,7 +204,7 @@ export const WorkerJobsPage = () => {
                                         {booking.status === "Pending" ? (
                                             <>
                                                 <button
-                                                    onClick={() => handleStatusChange(booking.bookingId, "Confirmed")}
+                                                    onClick={() => handleStatusChange(booking.bookingId, "WorkerAccepted")}
                                                     disabled={updatingId === booking.bookingId}
                                                     className="w-full py-2.5 px-4 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50"
                                                 >
@@ -208,7 +218,7 @@ export const WorkerJobsPage = () => {
                                                     Decline
                                                 </button>
                                             </>
-                                        ) : booking.status === "Confirmed" ? (
+                                        ) : booking.status === "CustomerConfirmed" ? (
                                             <button
                                                 onClick={() => handleStatusChange(booking.bookingId, "InProgress")}
                                                 disabled={updatingId === booking.bookingId}

@@ -42,6 +42,15 @@
     font-size: 0.9375rem;
     font-weight: 600;
     color: #1a1f36;
+    flex: 1;
+}
+
+.action {
+    color: #2563eb;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
 }
 
 .close {

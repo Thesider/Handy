@@ -9,7 +9,6 @@ export type Address = {
 
 export type Worker = {
   workerId: number;
-  yearsOfExperience: number;
   isAvailable: boolean;
   hourlyRate: number;
   rating: number;
@@ -19,6 +18,22 @@ export type Worker = {
   phoneNumber: string;
   address: Address;
   workerProfileId?: number | null;
+  distanceKm?: number | null;
+  bio?: string | null;
+  skillsCsv?: string | null;
+  profileImageUrl?: string | null;
+};
+
+export type WorkerAcceptanceMetrics = {
+  workerId: number;
+  totalResponses: number;
+  acceptedResponses: number;
+  responseAcceptanceRatePercent: number;
+  assignedBookings: number;
+  acceptedBookings: number;
+  bookingAcceptanceRatePercent: number;
+  averageResponseTimeMinutes: number;
+  medianResponseTimeMinutes: number;
 };
 
 export type Service = {

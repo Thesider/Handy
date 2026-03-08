@@ -230,7 +230,7 @@ export const HomePage = () => {
                                         </div>
                                         <div className="flex flex-wrap gap-2 pt-2">
                                             <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-md bg-green-50 text-green-600">
-                                                {worker.yearsOfExperience}+ năm kinh nghiệm
+                                                {worker.isAvailable ? "Available now" : "Currently busy"}
                                             </span>
                                         </div>
                                         <div className="pt-4 border-t border-gray-100 flex items-center justify-between mt-auto">

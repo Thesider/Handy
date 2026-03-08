@@ -57,8 +57,7 @@ export const BookingForm = ({ workerId, services }: BookingFormProps) => {
                 customerId,
                 workerId,
                 serviceId: values.serviceId,
-                minPrice: values.price, // Same as maxPrice for backend compatibility
-                maxPrice: values.price,
+                price: values.price,
                 startAt: new Date(values.startAt).toISOString(),
                 endAt: new Date(values.endAt).toISOString(),
                 status: "Pending",

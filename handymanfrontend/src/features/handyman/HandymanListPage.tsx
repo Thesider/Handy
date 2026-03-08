@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { getServices, getWorkers } from "../../api/handyman.api";
-import { getBookingsByService } from "../../api/booking.api";
+import { getServices } from "../../api/handyman.api";
+import { searchWorkers } from "../../api/workers.api";
 import type { Service, Worker } from "./handyman.types";
+
+const parseLatLng = (value: string): { latitude: number; longitude: number } | null => {
+    const parts = value.split(",").map((p) => p.trim());
+    if (parts.length !== 2) return null;
+    const latitude = Number(parts[0]);
+    const longitude = Number(parts[1]);
+    if (Number.isNaN(latitude) || Number.isNaN(longitude)) return null;
+    return { latitude, longitude };
+};
 
 export const HandymanListPage = () => {
     const [searchParams] = useSearchParams();
@@ -13,54 +22,17 @@ export const HandymanListPage = () => {
     const [availability, setAvailability] = useState(false);
     const [minRating, setMinRating] = useState(0);
     const [serviceId, setServiceId] = useState<number | "">("");
-    const [serviceWorkerIds, setServiceWorkerIds] = useState<number[] | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
-    const [maxPrice, setMaxPrice] = useState(0);
-    const [minExperience, setMinExperience] = useState(0);
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
-    const [viewMode, setViewMode] = useState<"list" | "map">("list");
+    const [minPrice, setMinPrice] = useState("");
+    const [maxPrice, setMaxPrice] = useState("");
+    const [locationInput, setLocationInput] = useState("");
+    const [radiusKm, setRadiusKm] = useState(10);
+    const [geoCoords, setGeoCoords] = useState<{ latitude: number; longitude: number } | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 6;
 
-    const maxHourlyRate = useMemo(
-        () => (workers.length ? Math.max(...workers.map((w) => w.hourlyRate)) : 0),
-        [workers]
-    );
-    const maxExperience = useMemo(
-        () =>
-            workers.length ? Math.max(...workers.map((w) => w.yearsOfExperience)) : 0,
-        [workers]
-    );
-
-    const hasActiveFilters =
-        availability ||
-        minRating > 0 ||
-        serviceId !== "" ||
-        searchTerm.trim().length > 0 ||
-        minExperience > 0 ||
-        startDate !== "" ||
-        endDate !== "" ||
-        (maxHourlyRate > 0 && maxPrice < maxHourlyRate);
-
-    useEffect(() => {
-        if (maxHourlyRate > 0 && (maxPrice === 0 || maxPrice > maxHourlyRate)) {
-            setMaxPrice(maxHourlyRate);
-        }
-    }, [maxHourlyRate, maxPrice]);
-
-    const handleClearFilters = () => {
-        setAvailability(false);
-        setMinRating(0);
-        setServiceId("");
-        setMinExperience(0);
-        setSearchTerm("");
-        setStartDate("");
-        setEndDate("");
-        setMaxPrice(maxHourlyRate);
-    };
-
-    const skeletonCards = Array.from({ length: 4 });
+    const searchCoords = useMemo(() => geoCoords ?? parseLatLng(locationInput), [geoCoords, locationInput]);
+    const hasLocationSearch = Boolean(searchCoords);
 
     useEffect(() => {
         const serviceIdParam = searchParams.get("serviceId");
@@ -75,75 +47,70 @@ export const HandymanListPage = () => {
     }, [searchParams]);
 
     useEffect(() => {
-        const loadData = async () => {
+        const loadServices = async () => {
+            try {
+                const serviceData = await getServices();
+                setServices(serviceData);
+            } catch {
+                // Non-blocking for worker search experience
+            }
+        };
+
+        void loadServices();
+    }, []);
+
+    useEffect(() => {
+        const loadWorkers = async () => {
             try {
                 setLoading(true);
-                const [workersData, servicesData] = await Promise.all([
-                    getWorkers(),
-                    getServices(),
-                ]);
+                const minPriceNumber = minPrice ? Number(minPrice) : undefined;
+                const maxPriceNumber = maxPrice ? Number(maxPrice) : undefined;
+                const workersData = await searchWorkers({
+                    minRating: minRating > 0 ? minRating : undefined,
+                    minPrice: Number.isFinite(minPriceNumber as number) ? minPriceNumber : undefined,
+                    maxPrice: Number.isFinite(maxPriceNumber as number) ? maxPriceNumber : undefined,
+                    latitude: searchCoords?.latitude,
+                    longitude: searchCoords?.longitude,
+                    maxDistanceKm: hasLocationSearch ? radiusKm : undefined,
+                });
                 setWorkers(workersData);
-                setServices(servicesData);
                 setError(null);
             } catch {
-                setError("Không thể tải danh sách thợ. Vui lòng thử lại sau.");
+                setError("Cannot load workers right now. Please try again.");
             } finally {
                 setLoading(false);
             }
         };
 
-        loadData();
-    }, []);
-
-    useEffect(() => {
-        const loadServiceBookings = async () => {
-            if (!serviceId) {
-                setServiceWorkerIds(null);
-                return;
-            }
-            try {
-                const bookings = await getBookingsByService(Number(serviceId));
-                const ids = [...new Set(bookings.map((booking) => booking.workerId))];
-                setServiceWorkerIds(ids);
-            } catch {
-                setServiceWorkerIds(null);
-            }
-        };
-
-        loadServiceBookings();
-    }, [serviceId]);
+        void loadWorkers();
+    }, [minRating, minPrice, maxPrice, hasLocationSearch, radiusKm, searchCoords]);
 
     const filteredWorkers = useMemo(() => {
         const normalizedSearch = searchTerm.trim().toLowerCase();
-        return workers.filter((worker) => {
-            if (availability && !worker.isAvailable) return false;
-            if (worker.rating < minRating) return false;
-            if (serviceWorkerIds && !serviceWorkerIds.includes(worker.workerId)) {
-                return false;
-            }
-            if (maxPrice > 0 && worker.hourlyRate > maxPrice) return false;
-            if (minExperience > 0 && worker.yearsOfExperience < minExperience) return false;
 
-            if (normalizedSearch) {
+        const byService = serviceId
+            ? workers.filter((worker) => worker.workerProfileId === Number(serviceId) || worker.skillsCsv?.toLowerCase().includes(String(serviceId)))
+            : workers;
+
+        return byService
+            .filter((worker) => {
+                if (availability && !worker.isAvailable) return false;
+                if (!normalizedSearch) return true;
+
                 const fullName = `${worker.firstName} ${worker.lastName}`.toLowerCase();
                 const location = `${worker.address.city} ${worker.address.state}`.toLowerCase();
-                if (!fullName.includes(normalizedSearch) && !location.includes(normalizedSearch)) {
-                    return false;
+                return fullName.includes(normalizedSearch) || location.includes(normalizedSearch);
+            })
+            .sort((a, b) => {
+                if (!hasLocationSearch) {
+                    return b.rating - a.rating;
                 }
-            }
-            return true;
-        });
-    }, [
-        workers,
-        availability,
-        minRating,
-        serviceWorkerIds,
-        maxPrice,
-        minExperience,
-        searchTerm,
-        startDate,
-        endDate,
-    ]);
+                const da = a.distanceKm ?? Number.MAX_VALUE;
+                const db = b.distanceKm ?? Number.MAX_VALUE;
+                if (da !== db) return da - db;
+                return b.rating - a.rating;
+            });
+    }, [workers, availability, searchTerm, serviceId, hasLocationSearch]);
 
     const totalPages = Math.max(1, Math.ceil(filteredWorkers.length / pageSize));
     const pagedWorkers = useMemo(() => {
@@ -158,428 +125,218 @@ export const HandymanListPage = () => {
             maximumFractionDigits: 0,
         }).format(value);
 
-    const locationLabel = useMemo(() => {
-        const first = workers.find((w) => w.address?.city);
-        if (!first) return "Việt Nam";
-        return `${first.address.city}${first.address.state ? `, ${first.address.state}` : ""}`;
-    }, [workers]);
-
     useEffect(() => {
         setCurrentPage(1);
-    }, [availability, minRating, serviceId, searchTerm, maxPrice, minExperience]);
+    }, [availability, minRating, serviceId, searchTerm, minPrice, maxPrice, locationInput, radiusKm, geoCoords]);
+
+    const clearFilters = () => {
+        setAvailability(false);
+        setMinRating(0);
+        setServiceId("");
+        setSearchTerm("");
+        setMinPrice("");
+        setMaxPrice("");
+        setLocationInput("");
+        setGeoCoords(null);
+        setRadiusKm(10);
+    };
+
+    const requestCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            setError("Location is not supported on this device. Showing rating-sorted results.");
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setGeoCoords({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                });
+                setLocationInput(`${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}`);
+            },
+            () => {
+                setError("Location permission unavailable. Showing rating-sorted results.");
+                setGeoCoords(null);
+            }
+        );
+    };
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-background-light px-4 py-6 md:px-10 lg:px-40">
-                <div className="mx-auto max-w-[1200px]">
-                    <div className="mb-6 space-y-2">
-                        <div className="h-7 w-2/3 rounded bg-slate-200" />
-                        <div className="h-4 w-1/2 rounded bg-slate-100" />
-                    </div>
-                    <div className="flex flex-col gap-6 lg:flex-row">
-                        <aside className="h-80 w-full rounded-xl bg-white p-5 shadow-sm lg:w-72" />
-                        <main className="grid w-full gap-4">
-                            {skeletonCards.map((_, index) => (
-                                <div
-                                    key={index}
-                                    className="h-40 rounded-xl bg-white p-5 shadow-sm"
-                                />
-                            ))}
-                        </main>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="min-h-screen bg-background-light px-4 py-6 md:px-10 lg:px-40">
-                <div className="mx-auto max-w-[1200px] rounded-xl bg-white p-6 text-center text-sm text-red-600">
-                    {error}
-                </div>
-            </div>
-        );
+        return <div className="min-h-screen p-8 text-slate-500">Loading workers...</div>;
     }
 
     return (
         <div className="min-h-screen bg-background-light px-4 py-6 md:px-10 lg:px-40">
             <div className="mx-auto max-w-[1200px]">
-                <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                    <div className="flex flex-col gap-2">
-                        <h1 className="text-3xl font-black tracking-tight text-slate-900">
-                            Dịch vụ sửa chữa tại {locationLabel}
-                        </h1>
-                        <p className="text-sm text-slate-500">
-                            Hiển thị {filteredWorkers.length} thợ phù hợp
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
-                            <button
-                                type="button"
-                                onClick={() => setViewMode("list")}
-                                className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${viewMode === "list"
-                                    ? "bg-white text-slate-900 shadow-sm"
-                                    : "text-slate-500"
-                                    }`}
-                            >
-                                <span className="material-symbols-outlined text-[20px]">
-                                    view_list
-                                </span>
-                                <span className="hidden sm:inline">Danh sách</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setViewMode("map")}
-                                className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${viewMode === "map"
-                                    ? "bg-white text-slate-900 shadow-sm"
-                                    : "text-slate-500"
-                                    }`}
-                            >
-                                <span className="material-symbols-outlined text-[20px]">map</span>
-                                <span className="hidden sm:inline">Bản đồ</span>
-                            </button>
-                        </div>
-                    </div>
+                <div className="mb-6">
+                    <h1 className="text-3xl font-black tracking-tight text-slate-900">Find Workers</h1>
+                    <p className="text-sm text-slate-500">Showing {filteredWorkers.length} matching professionals</p>
                 </div>
 
+                {error ? (
+                    <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</div>
+                ) : null}
+
+                {!hasLocationSearch ? (
+                    <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                        Location is not active. Results are sorted by rating.
+                    </div>
+                ) : null}
+
                 <div className="flex flex-col gap-8 lg:flex-row">
-                    <aside className="w-full flex-shrink-0 rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:w-72 lg:sticky lg:top-24">
+                    <aside className="w-full rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:w-80">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-slate-900">Bộ lọc</h3>
-                            <button
-                                type="button"
-                                onClick={handleClearFilters}
-                                disabled={!hasActiveFilters}
-                                className="text-sm font-medium text-primary disabled:text-slate-300"
-                            >
-                                Xoá tất cả
-                            </button>
+                            <h3 className="text-lg font-bold text-slate-900">Filters</h3>
+                            <button type="button" onClick={clearFilters} className="text-sm font-medium text-primary">Clear</button>
                         </div>
 
                         <div className="mt-4 flex flex-col gap-4">
-                            <div>
-                                <label className="text-sm font-medium text-slate-900" htmlFor="service">
-                                    Loại dịch vụ
-                                </label>
-                                <select
-                                    id="service"
-                                    value={serviceId}
-                                    onChange={(event) =>
-                                        setServiceId(event.target.value ? Number(event.target.value) : "")
-                                    }
-                                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                                >
-                                    <option value="">Tất cả dịch vụ</option>
-                                    {services.map((service) => (
-                                        <option key={service.serviceId} value={service.serviceId}>
-                                            {service.serviceName}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <hr className="border-slate-100" />
-
-                            <div>
-                                <p className="text-sm font-medium text-slate-900">Giá theo giờ</p>
-                                <input
-                                    type="range"
-                                    min={0}
-                                    max={maxHourlyRate || 1}
-                                    value={maxPrice}
-                                    onChange={(event) => setMaxPrice(Number(event.target.value))}
-                                    className="mt-3 w-full accent-primary"
-                                />
-                                <div className="mt-2 flex justify-between text-xs text-slate-500">
-                                    <span>0đ</span>
-                                    <span>{formatVnd(maxHourlyRate || 0)}</span>
-                                </div>
-                            </div>
-
-                            <hr className="border-slate-100" />
-
-                            <div className="flex flex-col gap-2">
-                                <p className="text-sm font-medium text-slate-900">Tình trạng</p>
-                                <label className="flex items-center gap-3 text-sm text-slate-600">
-                                    <input
-                                        type="checkbox"
-                                        className="size-4 rounded border-slate-300 text-primary focus:ring-primary/20"
-                                        checked={availability}
-                                        onChange={(event) => setAvailability(event.target.checked)}
-                                    />
-                                    Có thể nhận việc ngay
-                                </label>
-                            </div>
-
-                            <hr className="border-slate-100" />
-
-                            <div className="flex flex-col gap-2">
-                                <p className="text-sm font-medium text-slate-900">Đánh giá</p>
-                                {[4.5, 4.0, 0].map((value) => (
-                                    <label
-                                        key={value}
-                                        className="flex items-center gap-3 rounded-lg border border-slate-200 p-2.5 text-sm text-slate-700"
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="rating_filter"
-                                            className="size-4 text-primary"
-                                            checked={minRating === value}
-                                            onChange={() => setMinRating(value)}
-                                        />
-                                        <span>{value === 0 ? "Mọi đánh giá" : `${value}★ trở lên`}</span>
-                                    </label>
+                            <label className="text-sm font-medium text-slate-900">Service</label>
+                            <select
+                                value={serviceId}
+                                onChange={(event) => setServiceId(event.target.value ? Number(event.target.value) : "")}
+                                className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                                title="Service filter"
+                                aria-label="Service filter"
+                            >
+                                <option value="">All Services</option>
+                                {services.map((service) => (
+                                    <option key={service.serviceId} value={service.serviceId}>{service.serviceName}</option>
                                 ))}
-                            </div>
+                            </select>
 
-                            <hr className="border-slate-100" />
+                            <label className="text-sm font-medium text-slate-900">Minimum Rating: {minRating.toFixed(1)}</label>
+                            <input
+                                type="range"
+                                min={0}
+                                max={5}
+                                step={0.5}
+                                value={minRating}
+                                onChange={(event) => setMinRating(Number(event.target.value))}
+                                className="accent-primary"
+                                title="Minimum rating"
+                                aria-label="Minimum rating"
+                            />
 
-                            <div>
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm font-medium text-slate-900">Kinh nghiệm</p>
-                                    <span className="text-xs text-slate-500">{minExperience} năm</span>
-                                </div>
+                            <div className="grid grid-cols-2 gap-2">
                                 <input
-                                    type="range"
-                                    min={0}
-                                    max={maxExperience || 1}
-                                    value={minExperience}
-                                    onChange={(event) => setMinExperience(Number(event.target.value))}
-                                    className="mt-3 w-full accent-primary"
+                                    type="number"
+                                    value={minPrice}
+                                    onChange={(event) => setMinPrice(event.target.value)}
+                                    placeholder="Min price"
+                                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                                />
+                                <input
+                                    type="number"
+                                    value={maxPrice}
+                                    onChange={(event) => setMaxPrice(event.target.value)}
+                                    placeholder="Max price"
+                                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
                                 />
                             </div>
 
-                            <div>
-                                <label className="text-sm font-medium text-slate-900" htmlFor="search">
-                                    Tìm theo tên/khu vực
-                                </label>
+                            <input
+                                type="text"
+                                value={locationInput}
+                                onChange={(event) => {
+                                    setGeoCoords(null);
+                                    setLocationInput(event.target.value);
+                                }}
+                                placeholder="Location (lat,lng) or use current"
+                                className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                                title="Location coordinates"
+                            />
+                            <div className="grid grid-cols-2 gap-2">
                                 <input
-                                    id="search"
-                                    type="text"
-                                    value={searchTerm}
-                                    onChange={(event) => setSearchTerm(event.target.value)}
-                                    placeholder="VD: Nguyễn Văn A, Hà Nội"
-                                    className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                                    type="number"
+                                    value={radiusKm}
+                                    onChange={(event) => setRadiusKm(Math.max(1, Number(event.target.value) || 1))}
+                                    placeholder="Radius km"
+                                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
                                 />
+                                <button type="button" onClick={requestCurrentLocation} className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">
+                                    Use My Location
+                                </button>
                             </div>
 
-                            <hr className="border-slate-100" />
+                            <label className="flex items-center gap-2 text-sm text-slate-700">
+                                <input
+                                    type="checkbox"
+                                    checked={availability}
+                                    onChange={(event) => setAvailability(event.target.checked)}
+                                />
+                                Available now
+                            </label>
 
-                            <div className="flex flex-col gap-3">
-                                <p className="text-sm font-medium text-slate-900">Thời gian rảnh</p>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] uppercase font-bold text-slate-400">Từ ngày</label>
-                                    <input
-                                        type="date"
-                                        value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
-                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] uppercase font-bold text-slate-400">Đến ngày</label>
-                                    <input
-                                        type="date"
-                                        value={endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
-                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                                    />
-                                </div>
-                            </div>
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(event) => setSearchTerm(event.target.value)}
+                                placeholder="Search by name/city"
+                                className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                            />
                         </div>
                     </aside>
 
-                    <main className="flex-1 w-full flex flex-col gap-4">
+                    <main className="flex-1 flex flex-col gap-4">
+                        {pagedWorkers.map((worker) => (
+                            <div key={worker.workerId} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-900">{worker.firstName} {worker.lastName}</h3>
+                                        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                                            <span>{worker.address.city}</span>
+                                            <span>•</span>
+                                            <span>{worker.rating.toFixed(1)}★</span>
+                                            {hasLocationSearch && worker.distanceKm != null ? (
+                                                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                                                    {worker.distanceKm.toFixed(1)} km
+                                                </span>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-lg font-black text-slate-900">{formatVnd(worker.hourlyRate)}</p>
+                                        <p className="text-xs text-slate-500">per hour</p>
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex items-center justify-between">
+                                    <span className={`text-sm font-medium ${worker.isAvailable ? "text-emerald-600" : "text-slate-400"}`}>
+                                        {worker.isAvailable ? "Available" : "Busy"}
+                                    </span>
+                                    <Link to={`/handymen/${worker.workerId}`} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-primary">
+                                        View Profile
+                                    </Link>
+                                </div>
+                            </div>
+                        ))}
+
                         {filteredWorkers.length === 0 ? (
-                            <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center">
-                                <h3 className="text-lg font-semibold text-slate-900">
-                                    Không có thợ phù hợp
-                                </h3>
-                                <p className="mt-2 text-sm text-slate-600">
-                                    Hãy điều chỉnh bộ lọc để mở rộng kết quả.
-                                </p>
+                            <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-500">
+                                No workers found for the current filters.
+                            </div>
+                        ) : null}
+
+                        {totalPages > 1 ? (
+                            <div className="flex items-center justify-center gap-2 py-4">
                                 <button
                                     type="button"
-                                    onClick={handleClearFilters}
-                                    className="mt-4 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-white"
+                                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
                                 >
-                                    Xoá bộ lọc
+                                    Prev
+                                </button>
+                                <span className="text-sm text-slate-500">{currentPage} / {totalPages}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                                >
+                                    Next
                                 </button>
                             </div>
-                        ) : viewMode === "map" ? (
-                            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                                <div className="mb-4 flex items-center justify-between">
-                                    <div>
-                                        <h2 className="text-lg font-semibold text-slate-900">
-                                            Bản đồ khu vực
-                                        </h2>
-                                        <p className="text-sm text-slate-500">
-                                            Hiển thị khu vực {locationLabel}
-                                        </p>
-                                    </div>
-                                    <span className="text-sm text-slate-500">
-                                        {filteredWorkers.length} thợ
-                                    </span>
-                                </div>
-                                <div className="overflow-hidden rounded-xl border border-slate-200">
-                                    <iframe
-                                        title="Bản đồ thợ"
-                                        className="h-[420px] w-full"
-                                        loading="lazy"
-                                        referrerPolicy="no-referrer-when-downgrade"
-                                        src={`https://www.google.com/maps?q=${encodeURIComponent(
-                                            locationLabel
-                                        )}&output=embed`}
-                                    />
-                                </div>
-                                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                                    {pagedWorkers.map((worker) => (
-                                        <div
-                                            key={worker.workerId}
-                                            className="flex items-center justify-between rounded-lg border border-slate-100 p-3"
-                                        >
-                                            <div>
-                                                <p className="text-sm font-semibold text-slate-900">
-                                                    {worker.firstName} {worker.lastName}
-                                                </p>
-                                                <p className="text-xs text-slate-500">
-                                                    {worker.address.city}, {worker.address.state}
-                                                </p>
-                                            </div>
-                                            <Link
-                                                to={`/handymen/${worker.workerId}`}
-                                                className="text-sm font-medium text-primary hover:underline"
-                                            >
-                                                Xem hồ sơ
-                                            </Link>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                {pagedWorkers.map((worker) => (
-                                    <div
-                                        key={worker.workerId}
-                                        className="group relative flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 sm:flex-row"
-                                    >
-                                        <div className="relative flex-shrink-0">
-                                            <div className="flex size-24 items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 text-primary transition-transform duration-300 group-hover:scale-105 sm:size-32">
-                                                <span className="material-symbols-outlined text-4xl sm:text-5xl">
-                                                    face
-                                                </span>
-                                            </div>
-                                            <div className="absolute -bottom-2 -right-2 rounded-full border border-white bg-white p-1 shadow-sm">
-                                                <div className="flex size-6 items-center justify-center rounded-full bg-blue-100 text-blue-600" title="Verified Pro">
-                                                    <span className="material-symbols-outlined text-[16px]">
-                                                        verified
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-1 flex-col justify-between gap-3">
-                                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-primary">
-                                                            {worker.firstName} {worker.lastName}
-                                                        </h3>
-                                                        {worker.isAvailable && (
-                                                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-                                                                Sẵn sàng
-                                                            </span>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                                                        <span className="flex items-center gap-1 rounded-md bg-slate-50 px-2 py-1">
-                                                            <span className="material-symbols-outlined text-amber-400 text-[18px] filled">
-                                                                star
-                                                            </span>
-                                                            <span className="font-semibold text-slate-700">{worker.rating}</span>
-                                                        </span>
-                                                        <span className="flex items-center gap-1">
-                                                            <span className="material-symbols-outlined text-[18px]">work_history</span>
-                                                            {worker.yearsOfExperience} năm exp
-                                                        </span>
-                                                        <span className="flex items-center gap-1">
-                                                            <span className="material-symbols-outlined text-[18px]">location_on</span>
-                                                            {worker.address.city}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="text-left sm:text-right">
-                                                    <p className="text-2xl font-black text-slate-900">
-                                                        {formatVnd(worker.hourlyRate)}
-                                                    </p>
-                                                    <p className="text-xs font-medium text-slate-500">Giá / giờ</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center justify-end gap-3 pt-2">
-                                                <span
-                                                    className={`text-sm font-medium transition-opacity ${worker.isAvailable
-                                                        ? "text-emerald-600 opacity-0 group-hover:opacity-100"
-                                                        : "text-slate-400"
-                                                        }`}
-                                                >
-                                                    {worker.isAvailable ? "Có thể đặt ngay" : "Đang bận"}
-                                                </span>
-                                                <Link
-                                                    to={`/handymen/${worker.workerId}`}
-                                                    className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary hover:shadow-lg hover:shadow-primary/20 active:scale-95"
-                                                >
-                                                    Xem hồ sơ
-                                                    <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                                                </Link>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                {totalPages > 1 ? (
-                                    <div className="flex items-center justify-center gap-2 py-4">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setCurrentPage((prev) => Math.max(1, prev - 1))
-                                            }
-                                            className="flex size-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
-                                            aria-label="Trang trước"
-                                        >
-                                            <span className="material-symbols-outlined">chevron_left</span>
-                                        </button>
-                                        {Array.from({ length: totalPages }).map((_, index) => {
-                                            const page = index + 1;
-                                            return (
-                                                <button
-                                                    key={page}
-                                                    type="button"
-                                                    onClick={() => setCurrentPage(page)}
-                                                    className={`flex size-9 items-center justify-center rounded-lg border text-sm font-medium ${page === currentPage
-                                                        ? "border-primary bg-primary text-white"
-                                                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                                                        }`}
-                                                >
-                                                    {page}
-                                                </button>
-                                            );
-                                        })}
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                                            }
-                                            className="flex size-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
-                                            aria-label="Trang sau"
-                                        >
-                                            <span className="material-symbols-outlined">chevron_right</span>
-                                        </button>
-                                    </div>
-                                ) : null}
-                            </>
-                        )}
+                        ) : null}
                     </main>
                 </div>
             </div>

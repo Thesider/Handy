@@ -1,6 +1,7 @@
 export type BookingStatus =
   | "Pending"
-  | "Confirmed"
+  | "WorkerAccepted"
+  | "CustomerConfirmed"
   | "InProgress"
   | "Completed"
   | "Cancelled"
@@ -11,21 +12,22 @@ export type Booking = {
   customerId: number;
   workerId: number;
   serviceId: number;
-  minPrice: number;
-  maxPrice: number;
+  price: number;
   startAt: string;
   endAt?: string | null;
   status: BookingStatus;
   amount: number;
   notes?: string | null;
+  paymentStatus?: "NotCaptured" | "Captured" | "Refunded";
+  paymentCapturedAt?: string | null;
+  paymentReference?: string | null;
 };
 
 export type BookingCreatePayload = {
   customerId: number;
   workerId: number;
   serviceId: number;
-  minPrice: number;
-  maxPrice: number;
+  price: number;
   startAt: string;
   endAt?: string | null;
   status: BookingStatus;
