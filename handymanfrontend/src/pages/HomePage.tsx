@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { getServices, getWorkers } from "../api/handyman.api";
 import type { Service, Worker } from "../features/handyman/handyman.types";
 
+const SERVICE_ICONS = ["plumbing", "electrical_services", "construction", "cleaning_services", "imagesearch_roller", "format_paint"];
+
 export const HomePage = () => {
     const navigate = useNavigate();
     const [services, setServices] = useState<Service[]>([]);
@@ -30,7 +32,7 @@ export const HomePage = () => {
 
     const popularServices = useMemo(() => services.slice(0, 6), [services]);
     const topWorkers = useMemo(
-        () => [...workers].sort((a, b) => b.rating - a.rating).slice(0, 4),
+        () => [...workers].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 4),
         [workers]
     );
 
@@ -59,89 +61,122 @@ export const HomePage = () => {
     };
 
     return (
-        <main className="flex flex-col">
-            <section className="relative flex min-h-[560px] flex-col items-center justify-center overflow-hidden px-4 py-20 text-center">
-                <div className="absolute inset-0 bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuDCa3J4Q1ygwQRh_rIha5utDmRY2XvkSyVglWEqgQ4QQwDObhZtEY4nnkFHtT0EwbwDPRM0QINciiZQPhddMnHLS40FbDkj3S8cS_qrlXkjqdURQR158G7-P4Xvd45y7tcXmbUbwnObkbqN6spbirWsTWcOJB1wESkgzWuuyMaiYHRbnL1stREJjZ8TU6ghJrMw4VDS4rHDYrAZk0yN_GVF5zczaLtIzdFBDliTK87lW-SyxhjHLC0_TCuhzJjtVFC61c6C0iG4UhK9')] bg-cover bg-center" />
-                <div className="absolute inset-0 bg-black/60" />
-                <div className="relative flex w-full max-w-[800px] flex-col gap-6">
-                    <div className="flex flex-col gap-2">
-                        <h1 className="text-4xl font-black leading-tight tracking-[-0.033em] text-white md:text-5xl lg:text-6xl">
-                            Tìm thợ phù hợp cho mọi việc
+        <main className="flex flex-col bg-background-light">
+            {/* Hero Section */}
+            <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden px-4 py-20">
+                <div className="absolute inset-0 z-0">
+                    <img
+                        src="https://images.unsplash.com/photo-1581578731548-c64695ce6958?q=80&w=2070&auto=format&fit=crop"
+                        alt="Hero Background"
+                        className="w-full h-full object-cover scale-105"
+                    />
+                    {/* Stronger overlay at the top and left to make Navbar and text pop */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-950/80 via-blue-900/60 to-transparent" />
+                </div>
+
+                <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
+                    <div className="flex-1 text-left space-y-8 animate-fade-in-up">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/30 text-blue-100 border border-blue-400/30 backdrop-blur-sm text-sm font-medium">
+                            <span className="material-symbols-outlined text-sm">verified</span>
+                            Nền tảng thợ số 1 Việt Nam
+                        </div>
+                        <h1 className="text-5xl md:text-7xl font-bold text-white leading-[1.1] font-display">
+                            Mọi việc nhà, <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">đã có HandyHub lo.</span>
                         </h1>
-                        <p className="text-base font-normal leading-normal text-gray-200 md:text-lg">
-                            Từ sửa chữa nhỏ đến cải tạo lớn, kết nối với chuyên gia uy tín gần bạn
-                            chỉ trong vài phút.
+                        <p className="text-lg md:text-xl text-blue-50/90 max-w-xl leading-relaxed">
+                            Kết nối ngay với hàng ngàn chuyên gia uy tín, tận tâm. Sửa chữa, cải tạo hay bảo trì - Chúng tôi luôn sẵn sàng hỗ trợ bạn.
                         </p>
-                    </div>
-                    <form
-                        className="mx-auto w-full max-w-[640px] rounded-2xl bg-white p-2 shadow-xl"
-                        onSubmit={handleSearchSubmit}
-                    >
-                        <div className="flex items-center">
-                            <div className="flex h-12 w-12 items-center justify-center text-[#617589]">
-                                <span className="material-symbols-outlined text-2xl">search</span>
+
+                        <form
+                            className="w-full max-w-[600px] rounded-2xl bg-white p-2 shadow-2xl flex flex-col sm:flex-row gap-2"
+                            onSubmit={handleSearchSubmit}
+                        >
+                            <div className="flex flex-1 items-center px-4">
+                                <span className="material-symbols-outlined text-gray-400 mr-2">search</span>
+                                <input
+                                    className="w-full py-3 bg-transparent text-gray-800 placeholder:text-gray-400 focus:outline-none"
+                                    placeholder="Bạn đang cần sửa gì?"
+                                    value={searchQuery}
+                                    onChange={(event) => setSearchQuery(event.target.value)}
+                                />
                             </div>
-                            <input
-                                className="flex h-12 w-full min-w-0 flex-1 border-none bg-transparent px-2 text-base font-normal leading-normal text-[#111418] placeholder:text-[#617589] focus:outline-none focus:ring-0"
-                                placeholder="Bạn đang cần hỗ trợ việc gì? (VD: Sửa ống nước)"
-                                aria-label="Tìm kiếm dịch vụ"
-                                value={searchQuery}
-                                onChange={(event) => setSearchQuery(event.target.value)}
-                            />
                             <button
                                 type="submit"
-                                className="flex h-12 min-w-[110px] items-center justify-center rounded-xl bg-primary px-6 text-base font-bold text-white transition-colors hover:bg-blue-600"
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all duration-300 shadow-lg shadow-blue-500/30 active:scale-95"
                             >
-                                Tìm thợ
+                                Tìm thợ ngay
                             </button>
-                        </div>
-                    </form>
-                    <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm font-medium text-white/90">
-                        <span className="text-white/70">Dịch vụ phổ biến:</span>
-                        {popularServices.length === 0 ? (
-                            <span className="text-white/70">Đang cập nhật...</span>
-                        ) : (
-                            popularServices.map((service) => (
+                        </form>
+
+                        <div className="flex flex-wrap gap-3 pt-4">
+                            <span className="text-white/60 text-sm flex items-center">Gợi ý:</span>
+                            {popularServices.slice(0, 3).map((service) => (
                                 <Link
                                     key={service.serviceId}
-                                    className="rounded-full border border-white/40 px-3 py-1 transition hover:border-white hover:bg-white/10"
+                                    className="text-xs font-semibold px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-sm transition-all"
                                     to={`/handymen?serviceId=${service.serviceId}`}
                                 >
                                     {service.serviceName}
                                 </Link>
-                            ))
-                        )}
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="hidden lg:flex flex-1 justify-end animate-float">
+                        <div className="relative w-[450px] aspect-square rounded-3xl overflow-hidden shadow-2xl border-8 border-white/10">
+                            <img
+                                src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=2069&auto=format&fit=crop"
+                                alt="Handyman working"
+                                className="w-full h-full object-cover"
+                            />
+                            <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-white/95 backdrop-blur-md shadow-xl border border-white/20">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white">
+                                        <span className="material-symbols-outlined">check_circle</span>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-900">Yêu cầu hoàn tất!</p>
+                                        <p className="text-xs text-gray-600">Thợ đang trên đường tới nhà bạn.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <section className="bg-white px-4 py-16 md:px-10 lg:px-40">
-                <div className="mx-auto max-w-[1200px]">
-                    <h2 className="mb-8 px-4 text-center text-2xl font-bold leading-tight tracking-[-0.015em] text-[#111418] md:text-3xl">
-                        Dịch vụ phổ biến
-                    </h2>
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {/* Popular Services Section */}
+            <section className="py-24 px-4 bg-white">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+                        <div className="space-y-4">
+                            <h2 className="text-sm font-bold uppercase tracking-widest text-primary">Dịch vụ đa dạng</h2>
+                            <h3 className="text-4xl md:text-5xl font-bold text-gray-900 font-display">Bạn cần giúp đỡ việc gì?</h3>
+                        </div>
+                        <Link to="/handymen" className="group flex items-center gap-2 text-primary font-bold hover:text-primary-700 transition-all pb-2 border-b-2 border-primary/20 hover:border-primary">
+                            Khám phá tất cả <span className="material-symbols-outlined">arrow_forward</span>
+                        </Link>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                         {loading ? (
-                            <div className="col-span-full text-center text-sm text-[#617589]">
-                                Đang tải dịch vụ...
-                            </div>
-                        ) : popularServices.length === 0 ? (
-                            <div className="col-span-full text-center text-sm text-[#617589]">
-                                Chưa có dịch vụ nào.
-                            </div>
+                            Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} className="h-48 rounded-3xl bg-gray-100 animate-pulse" />
+                            ))
                         ) : (
-                            popularServices.map((service) => (
+                            popularServices.map((service, index) => (
                                 <Link
                                     key={service.serviceId}
-                                    to="/handymen"
-                                    className="group flex flex-col items-center gap-3 rounded-xl bg-background-light p-6 text-center transition-all hover:-translate-y-1 hover:bg-primary/5 hover:shadow-md"
+                                    to={`/handymen?serviceId=${service.serviceId}`}
+                                    className="group relative flex flex-col items-center justify-center p-8 rounded-3xl bg-gray-50 border border-gray-100 shadow-sm hover:shadow-premium-hover hover:-translate-y-2 transition-all duration-500"
                                 >
-                                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-primary group-hover:bg-primary group-hover:text-white">
+                                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-all duration-500 bg-white text-primary group-hover:bg-primary group-hover:text-white shadow-sm`}>
                                         <span className="material-symbols-outlined text-3xl">
-                                            build
+                                            {SERVICE_ICONS[index % SERVICE_ICONS.length]}
                                         </span>
                                     </div>
-                                    <span className="font-medium text-[#111418]">
+                                    <span className="font-bold text-gray-900 text-center group-hover:text-primary transition-colors">
                                         {service.serviceName}
                                     </span>
                                 </Link>
@@ -151,109 +186,56 @@ export const HomePage = () => {
                 </div>
             </section>
 
-            <section className="bg-background-light px-4 py-16 md:px-10 lg:px-40">
-                <div className="mx-auto max-w-[1200px]">
-                    <div className="mb-12 text-center">
-                        <h2 className="mb-4 text-3xl font-bold text-[#111418]">Cách hoạt động</h2>
-                        <div className="inline-flex rounded-lg bg-gray-200 p-1">
-                            <button className="rounded-md bg-white px-6 py-2 text-sm font-bold text-[#111418] shadow-sm">
-                                Khách hàng
-                            </button>
-                            <button className="rounded-md px-6 py-2 text-sm font-medium text-gray-500 hover:text-[#111418]">
-                                Thợ chuyên nghiệp
-                            </button>
+            {/* Featured Workers Section */}
+            <section className="py-24 px-4 bg-gray-50/50">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+                        <div className="space-y-4">
+                            <h3 className="text-4xl md:text-5xl font-bold text-gray-900 font-display">Đội ngũ thợ xuất sắc nhất</h3>
+                            <p className="text-gray-500 max-w-xl">Những chuyên gia được đánh giá cao nhất bởi cộng đồng khách hàng tại HandyHub.</p>
                         </div>
-                    </div>
-                    <div className="grid gap-8 md:grid-cols-3">
-                        {[
-                            {
-                                title: "1. Đăng yêu cầu",
-                                icon: "post_add",
-                                text: "Cho chúng tôi biết việc cần làm, thời gian và khu vực của bạn.",
-                            },
-                            {
-                                title: "2. Xem đề xuất",
-                                icon: "person_search",
-                                text: "So sánh báo giá, đọc đánh giá và chọn thợ phù hợp nhất.",
-                            },
-                            {
-                                title: "3. Hoàn thành",
-                                icon: "check_circle",
-                                text: "Thợ đến đúng hẹn và hoàn thành công việc. Thanh toán an toàn qua nền tảng.",
-                            },
-                        ].map((step) => (
-                            <div key={step.title} className="flex flex-col items-center text-center">
-                                <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-white shadow-md">
-                                    <span className="material-symbols-outlined text-5xl text-primary">
-                                        {step.icon}
-                                    </span>
-                                </div>
-                                <h3 className="mb-2 text-xl font-bold text-[#111418]">
-                                    {step.title}
-                                </h3>
-                                <p className="max-w-xs text-sm text-[#617589]">{step.text}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            <section className="bg-white px-4 py-16 md:px-10 lg:px-40">
-                <div className="mx-auto max-w-[1200px]">
-                    <div className="mb-8 flex items-center justify-between">
-                        <h2 className="text-2xl font-bold text-[#111418]">
-                            Thợ được đánh giá cao
-                        </h2>
-                        <Link className="text-sm font-medium text-primary hover:underline" to="/handymen">
-                            Xem tất cả
+                        <Link to="/handymen" className="px-8 py-3 rounded-xl bg-white border-2 border-primary text-primary font-bold hover:bg-primary hover:text-white transition-all duration-300 shadow-sm">
+                            Xem tất cả thợ
                         </Link>
                     </div>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                         {loading ? (
-                            <div className="col-span-full text-center text-sm text-[#617589]">
-                                Đang tải thợ nổi bật...
-                            </div>
-                        ) : topWorkers.length === 0 ? (
-                            <div className="col-span-full text-center text-sm text-[#617589]">
-                                Chưa có thợ nổi bật.
-                            </div>
+                            Array.from({ length: 4 }).map((_, i) => (
+                                <div key={i} className="h-80 rounded-3xl bg-gray-100 animate-pulse" />
+                            ))
                         ) : (
-                            topWorkers.map((pro) => (
-                                <div
-                                    key={pro.workerId}
-                                    className="group overflow-hidden rounded-xl border border-[#f0f2f4] bg-white transition-shadow hover:shadow-lg"
-                                >
-                                    <div className="flex h-48 w-full items-center justify-center bg-blue-50 text-primary">
-                                        <span className="material-symbols-outlined text-5xl">handyman</span>
-                                    </div>
-                                    <div className="p-4">
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                <h3 className="font-bold text-[#111418]">
-                                                    {pro.firstName} {pro.lastName}
-                                                </h3>
-                                                <p className="text-xs font-medium text-primary">
-                                                    {pro.address.city}, {pro.address.state || "Việt Nam"}
-                                                </p>
-                                            </div>
-                                            <div className="flex items-center gap-1 rounded bg-yellow-100 px-1.5 py-0.5 text-xs font-bold text-yellow-800">
-                                                <span className="material-symbols-outlined text-[14px]">star</span>
-                                                {pro.rating}
-                                            </div>
+                            topWorkers.map((worker) => (
+                                <div key={worker.workerId} className="group bg-white rounded-[2.5rem] overflow-hidden shadow-premium hover:shadow-premium-hover transition-all duration-500 flex flex-col border border-gray-100">
+                                    <div className="relative h-64 overflow-hidden bg-gray-100">
+                                        <img
+                                            src={`https://i.pravatar.cc/300?u=${worker.workerId}`}
+                                            alt={worker.firstName}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                        />
+                                        <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-white/90 text-xs font-bold flex items-center gap-1 shadow-sm text-gray-900">
+                                            <span className="material-symbols-outlined text-[14px] text-yellow-500 fill">star</span>
+                                            {(worker.rating || 0).toFixed(1)}
                                         </div>
-                                        <p className="mt-2 text-sm text-[#617589]">
-                                            {pro.yearsOfExperience}+ năm kinh nghiệm
-                                        </p>
-                                        <div className="mt-4 flex items-center justify-between border-t border-dashed border-[#f0f2f4] pt-3">
-                                            <span className="text-sm font-semibold text-[#111418]">
-                                                {formatVnd(pro.hourlyRate)}/giờ
+                                    </div>
+                                    <div className="p-8 space-y-4 flex-1 flex flex-col">
+                                        <div className="flex-1">
+                                            <h4 className="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors">
+                                                {worker.firstName} {worker.lastName}
+                                            </h4>
+                                            <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                                                <span className="material-symbols-outlined text-sm">location_on</span>
+                                                {worker.address?.city || "Việt Nam"}
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 pt-2">
+                                            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-md bg-green-50 text-green-600">
+                                                {worker.yearsOfExperience}+ năm kinh nghiệm
                                             </span>
-                                            <Link
-                                                to="/handymen"
-                                                className="rounded bg-blue-100 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-white"
-                                            >
-                                                Xem hồ sơ
-                                            </Link>
+                                        </div>
+                                        <div className="pt-4 border-t border-gray-100 flex items-center justify-between mt-auto">
+                                            <div className="text-lg font-black text-gray-900">{formatVnd(worker.hourlyRate)}<span className="text-xs font-normal text-gray-500">/giờ</span></div>
+                                            <Link to={`/handymen`} className="text-primary font-bold text-sm hover:underline">Chi tiết</Link>
                                         </div>
                                     </div>
                                 </div>
@@ -263,139 +245,57 @@ export const HomePage = () => {
                 </div>
             </section>
 
-            <section className="relative overflow-hidden bg-primary px-4 py-20 text-white md:px-10 lg:px-40">
-                <div
-                    className="absolute inset-0 bg-cover bg-center"
-                    style={{
-                        backgroundImage:
-                            "linear-gradient(rgba(30,58,138,0.85), rgba(30,58,138,0.85)), url('https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=2940&auto=format&fit=crop')",
-                    }}
-                />
-                <div className="relative mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-10 md:flex-row">
-                    <div className="flex flex-1 flex-col gap-6 text-center md:text-left">
-                        <div className="flex items-center justify-center gap-2 rounded-full bg-white/20 px-4 py-1 text-sm font-medium backdrop-blur-sm md:w-fit md:justify-start">
-                            <span className="material-symbols-outlined text-sm">verified</span>
-                            Verified Professionals Only
-                        </div>
-                        <h2 className="text-3xl font-bold leading-tight md:text-4xl">
-                            Bạn là thợ chuyên nghiệp?
-                            <br className="hidden md:block" />
-                            Tăng thu nhập cùng HandyHub.
-                        </h2>
-                        <p className="text-lg text-blue-100">
-                            Tham gia cộng đồng thợ uy tín để nhận thêm khách hàng mỗi ngày.
-                        </p>
-                        <div className="flex flex-col gap-4 sm:flex-row sm:justify-center md:justify-start">
-                            <Link
-                                to="/auth/register/worker"
-                                className="rounded-lg bg-white px-8 py-3 text-base font-bold text-black shadow-lg transition-transform hover:scale-105"
-                            >
-                                Trở thành thợ
-                            </Link>
-                            <Link
-                                to="/auth/register"
-                                className="rounded-lg border border-white/30 bg-white/10 px-8 py-3 text-base font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
-                            >
-                                Tìm hiểu thêm
-                            </Link>
-                        </div>
-                    </div>
-                    <div className="hidden flex-1 justify-end md:flex">
-                        <div className="relative h-[300px] w-[400px]">
-                            <div className="absolute right-0 top-0 h-full w-full rounded-2xl bg-white p-4 shadow-2xl">
-                                <div className="mb-4 flex items-center gap-3 border-b border-gray-100 pb-4">
-                                    <img
-                                        className="h-12 w-12 rounded-full object-cover"
-                                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlGnJ-X5A_1bxkhAB8QJ6EAqxbzoXj6ICpR4VC6z8g8H7bEOkJ0PAjsLtX-JaGDi4-x5UyK6jwB_nU5f0_SxHEJb3OmetX2xGmhTCHzmMWdaFMjF9qjGnj_ek9klziBhDUdGtxFp-H2zxig7lk2hddn03f7Umah3N1_Y-defWx6Zlx4aE921yRvRWFyw5QeXUDb1wm-c15l_QS3x2vKi8fX1n01KJuYrgG0Ivfb_-_6O1VkDwxyjiok8PjUbCIHw5t00owBO_iSJdm"
-                                        alt="Handyman avatar"
-                                    />
-                                    <div>
-                                        <div className="h-4 w-32 rounded bg-gray-100" />
-                                        <div className="mt-2 h-3 w-20 rounded bg-gray-100" />
-                                    </div>
-                                </div>
-                                <div className="space-y-3">
-                                    <div className="h-20 w-full rounded-lg bg-blue-50 p-3">
-                                        <div className="mb-2 h-4 w-3/4 rounded bg-blue-100" />
-                                        <div className="h-3 w-1/2 rounded bg-blue-100" />
-                                    </div>
-                                    <div className="h-20 w-full rounded-lg bg-gray-50 p-3">
-                                        <div className="mb-2 h-4 w-3/4 rounded bg-gray-200" />
-                                        <div className="h-3 w-1/2 rounded bg-gray-200" />
-                                    </div>
-                                </div>
-                                <div className="absolute -left-12 bottom-8 rounded-lg bg-white p-3 shadow-lg">
-                                    <div className="flex items-center gap-2 text-sm font-bold text-[#111418]">
-                                        <span className="material-symbols-outlined text-green-500">
-                                            monetization_on
-                                        </span>
-                                        <span>Kiếm được 30.000.000đ</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            {/* CTA Section - Fixed with blue-600 to ensure visibility */}
+            <section className="px-4 py-24 bg-white">
+                <div className="max-w-7xl mx-auto rounded-[3rem] bg-blue-600 overflow-hidden relative shadow-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800" />
 
-            <section className="bg-background-light px-4 py-16 md:px-10 lg:px-40">
-                <div className="mx-auto max-w-[1200px]">
-                    <h2 className="mb-12 text-center text-2xl font-bold text-[#111418] md:text-3xl">
-                        Khách hàng nói gì
-                    </h2>
-                    <div className="grid gap-6 md:grid-cols-3">
-                        {[
-                            {
-                                name: "Chị Hương",
-                                role: "Chủ nhà",
-                                text: "Tìm thợ ống nước chỉ mất 10 phút. Thợ đến đúng hẹn và sửa rất gọn gàng.",
-                                avatar:
-                                    "https://lh3.googleusercontent.com/aida-public/AB6AXuCbFyNTDHN1uIZKWX5KdYxuFlCGch0qkVqiTvgMob1vg-XMlFjGrbWO0jYgu4NOb2Q51MX0OLNJIQ-tr0TODtVy4TlOryO8olL7a07CaMkeaFOjnC64OAiPUW739uDKBg6SJlvFpTBpRYCFzEBYl8woe_OYet4vYqNdj4h98LhBVZFUGUQmSQ_raCQ2Kpx-0GFmUy0jAaEc0xOvJXUWg9jpipFgIsKtX-R-kHL_XmXHPiTY8jDsgFL4gr0R6KfVwe3rbbqMWolJaztV",
-                            },
-                            {
-                                name: "Anh Nam",
-                                role: "Chủ cửa hàng",
-                                text: "Thợ điện làm việc chuyên nghiệp, tư vấn rõ ràng và sạch sẽ sau khi xong.",
-                                avatar:
-                                    "https://lh3.googleusercontent.com/aida-public/AB6AXuB6XKiGrYfx-vzfr4y2xH2SZMzOD0PanMn2smNraKipZddiW9dwS9iaOXP6JE6wV49_lontoB8rSysfRrUn-295rKB2u1jmf8TqZk7JleEkbUywneikKMnKj8cEoGOPD1Z8I_uFnDF0T0BfcC3P-pzBSM66JEwXGzS0U6i9iRP5JDL56SnhXkV4h0yjN7cCc5ftSCkLVRiMMISNBvxAY4h-SqiH7AQmkphJWpB2MyPhCNebCqFOwgQVGr3MVzG8W0i10dxwZOt-7Uc9",
-                            },
-                            {
-                                name: "Cô Linh",
-                                role: "Chủ nhà",
-                                text: "Thuê thợ sơn rất dễ, giá minh bạch và đặt lịch nhanh chóng.",
-                                avatar:
-                                    "https://lh3.googleusercontent.com/aida-public/AB6AXuBjroHpmBRccf_LjpD2QApKyokt7sjJPPyyDPx8DEN6gHmyn4sOiFYPJ7kUbyWQf0Cb0vVNVQRcFhHmrB_7wDSQ_kXkN71Nont_a8e5SRKxmpRf_1pbIjlxH3oTkcFZAiiOy0TXO0qjyLhWT6mu_DaAhbMuf5T_onZ3ctIQWxXxEl-dOxaSYMuYpTGrU_XqP1CtWCLV7oD_MvMCtkHAu5ukJYjVT1GcBz48qoWg2_775XHLHEvH8EOdQzS_ZBgxIhaWIdOv2BUHbPdn",
-                            },
-                        ].map((review) => (
-                            <div key={review.name} className="flex flex-col rounded-xl bg-white p-6 shadow-sm">
-                                <div className="mb-4 flex gap-1 text-yellow-400">
-                                    {Array.from({ length: 5 }).map((_, index) => (
-                                        <span key={index} className="material-symbols-outlined text-xl">
-                                            star
-                                        </span>
-                                    ))}
-                                </div>
-                                <p className="mb-6 flex-1 text-sm leading-relaxed text-[#617589]">
-                                    “{review.text}”
-                                </p>
-                                <div className="flex items-center gap-3">
-                                    <img
-                                        className="h-10 w-10 rounded-full object-cover"
-                                        src={review.avatar}
-                                        alt={`${review.name} avatar`}
-                                    />
-                                    <div>
-                                        <p className="text-sm font-bold text-[#111418]">
-                                            {review.name}
-                                        </p>
-                                        <p className="text-xs text-[#617589]">{review.role}</p>
+                    <div className="relative z-10 px-8 md:px-20 py-20 flex flex-col md:flex-row items-center justify-between gap-12">
+                        <div className="flex-1 space-y-6 text-center md:text-left">
+                            <h2 className="text-4xl md:text-5xl font-bold text-white font-display leading-tight">
+                                Bạn là thợ chuyên nghiệp? <br />
+                                <span className="text-blue-200">Gia nhập HandyHub ngay!</span>
+                            </h2>
+                            <p className="text-blue-50/90 text-lg max-w-xl leading-relaxed">
+                                Tăng thu nhập, linh hoạt thời gian và tiếp cận hàng ngàn khách hàng mỗi ngày.
+                            </p>
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start pt-4">
+                                <Link to="/auth/register/worker" className="px-10 py-5 bg-white text-blue-600 font-black rounded-2xl hover:bg-gray-50 hover:scale-105 transition-all shadow-xl shadow-black/10">
+                                    Bắt đầu kiếm tiền ngay
+                                </Link>
+                                <Link to="/auth/register" className="px-10 py-5 bg-blue-800/50 text-white font-bold rounded-2xl hover:bg-blue-800 border border-blue-400/30 transition-all">
+                                    Tìm hiểu thêm
+                                </Link>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 hidden md:block">
+                            <div className="relative p-8 bg-black/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl rotate-3">
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between p-4 bg-green-500/30 rounded-2xl border border-green-400/30">
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-green-300">payments</span>
+                                            <span className="text-white font-bold">Thu nhập tuần này</span>
+                                        </div>
+                                        <span className="text-white font-black text-xl">12.500.000đ</span>
+                                    </div>
+                                    <div className="p-4 bg-white/10 rounded-2xl border border-white/10">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <span className="text-blue-100 text-sm">Công việc hoàn thành</span>
+                                            <span className="text-white font-bold">18</span>
+                                        </div>
+                                        <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
+                                            <div className="h-full bg-green-400 w-3/4 shadow-[0_0_10px_rgba(74,222,128,0.5)]" />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                        </div>
                     </div>
                 </div>
             </section>
         </main>
     );
 };
+
+
