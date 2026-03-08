@@ -10,35 +10,69 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
     rel="stylesheet" />
   <script>
-    tailwind = { config: { darkMode: "class" } };
     tailwind.config = {
+      darkMode: "class",
       theme: {
         extend: {
           colors: {
-            primary: "#137fec",
-            "background-light": "#f6f7f8",
-            "background-dark": "#101922",
+            primary: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              300: '#93c5fd',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+              DEFAULT: "#2563eb",
+            },
+            secondary: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              300: '#fdba74',
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              800: '#9a3412',
+              900: '#7c2d12',
+              DEFAULT: "#ea580c",
+            },
+            "background-light": "#f8fafc",
             "surface-light": "#ffffff",
-            "surface-dark": "#1A2633",
-            "text-primary-light": "#111418",
-            "text-primary-dark": "#ffffff",
-            "text-secondary-light": "#617589",
-            "text-secondary-dark": "#94a3b8",
           },
           fontFamily: {
-            display: ["Inter", "sans-serif"],
+            sans: ["Inter", "sans-serif"],
+            display: ["Outfit", "Inter", "sans-serif"],
           },
-          borderRadius: {
-            DEFAULT: "0.25rem",
-            lg: "0.5rem",
-            xl: "0.75rem",
-            full: "9999px",
+          boxShadow: {
+            'premium': '0 10px 40px -10px rgba(0, 0, 0, 0.08)',
+            'premium-hover': '0 20px 50px -12px rgba(0, 0, 0, 0.12)',
+            'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
           },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-20px)' },
+            },
+            fadeInUp: {
+              '0%': { opacity: '0', transform: 'translateY(20px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+          }
         },
       },
-    };
+    }
   </script>
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,aspect-ratio,typography"></script>
 </head>
 
 <body class="bg-background-light font-display text-[#111418] antialiased">
