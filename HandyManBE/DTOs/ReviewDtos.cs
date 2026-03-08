@@ -16,6 +16,8 @@ namespace HandyManBE.DTOs
         [Required]
         [StringLength(2000)]
         public string Comment { get; set; }
+
+        public int? BookingId { get; set; }
     }
 
     public class ReviewDto
@@ -25,5 +27,6 @@ namespace HandyManBE.DTOs
         public string Comment { get; set; }
         public int CustomerId { get; set; }
         public int WorkerId { get; set; }
+        public int? BookingId { get; set; }
     }
 }

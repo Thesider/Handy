@@ -17,7 +17,6 @@ namespace Validate
             if (string.IsNullOrWhiteSpace(worker.PhoneNumber)) errors.Add("PhoneNumber is required.");
             if (worker.HourlyRate < 0) errors.Add("HourlyRate must be >= 0.");
             if (worker.Rating < 0 || worker.Rating > 5) errors.Add("Rating must be between 0 and 5.");
-            if (worker.YearsOfExperience < 0) errors.Add("YearsOfExperience must be >= 0.");
             if (worker.Address == null) errors.Add("Address is required.");
             else
             {
@@ -47,10 +46,7 @@ namespace Validate
             if (booking.CustomerId <= 0) errors.Add("CustomerId must be > 0.");
             if (booking.WorkerId <= 0) errors.Add("WorkerId must be > 0.");
             if (booking.ServiceId <= 0) errors.Add("ServiceId must be > 0.");
-            if (booking.MinPrice < 0) errors.Add("MinPrice must be >= 0.");
-            if (booking.MaxPrice < 0) errors.Add("MaxPrice must be >= 0.");
-            if (booking.MaxPrice > 0 && booking.MinPrice > booking.MaxPrice)
-                errors.Add("MinPrice must be <= MaxPrice.");
+            if (booking.Price < 0) errors.Add("Price must be >= 0.");
             if (booking.Amount < 0) errors.Add("Amount must be >= 0.");
             if (booking.StartAt == default) errors.Add("StartAt is required.");
             if (booking.EndAt.HasValue && booking.EndAt.Value < booking.StartAt) errors.Add("EndAt must be after StartAt.");

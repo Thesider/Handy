@@ -10,10 +10,12 @@ namespace BussinessObject
         // Foreign keys for easier querying
         public int CustomerId { get; set; }
         public int WorkerId { get; set; }
+        public int? BookingId { get; set; }
 
         // navigation properties
         public virtual Worker Worker { get; set; }
         public virtual Customer Customer { get; set; }
+        public virtual Booking? Booking { get; set; }
 
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     }

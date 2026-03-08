@@ -1,7 +1,10 @@
 using BussinessObject;
+using Enums;
+using HandyManBE.Data;
 using HandyManBE.DTOs;
 using HandyManBE.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,10 +17,12 @@ namespace HandyManBE.Controller
     public class ReviewsController : ControllerBase
     {
         private readonly IReviewService _reviewService;
+        private readonly ApplicationDbContext _dbContext;
 
-        public ReviewsController(IReviewService reviewService)
+        public ReviewsController(IReviewService reviewService, ApplicationDbContext dbContext)
         {
             _reviewService = reviewService;
+            _dbContext = dbContext;
         }
 
         [HttpGet]
@@ -58,6 +63,23 @@ namespace HandyManBE.Controller
         {
             try
             {
+                if (review.BookingId.HasValue)
+                {
+                    var booking = await _dbContext.Bookings
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(b => b.BookingId == review.BookingId.Value);
+
+                    if (booking == null)
+                    {
+                        return BadRequest(new { errors = new[] { "Booking not found." } });
+                    }
+
+                    if (booking.Status != BookingStatus.Completed)
+                    {
+                        return BadRequest(new { errors = new[] { "Reviews can be submitted after booking completion." } });
+                    }
+                }
+
                 var created = await _reviewService.CreateAsync(DtoMapper.ToEntity(review));
                 return CreatedAtAction(nameof(GetById), new { id = created.ReviewId }, DtoMapper.ToDto(created));
             }

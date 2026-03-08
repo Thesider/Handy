@@ -32,7 +32,16 @@ namespace HandyManBE.Controller
                     FirstName = c.FirstName,
                     LastName = c.LastName,
                     Email = c.Email,
-                    PhoneNumber = c.PhoneNumber
+                    PhoneNumber = c.PhoneNumber,
+                    ProfileImageUrl = c.ProfileImageUrl,
+                    Bio = c.Bio,
+                    SkillsCsv = c.SkillsCsv,
+                    IsEmailVerified = c.IsEmailVerified,
+                    IsPhoneVerified = c.IsPhoneVerified,
+                    IdVerificationStatus = c.IdVerificationStatus,
+                    RequiresAdminPreApproval = c.RequiresAdminPreApproval,
+                    IsApprovedByAdmin = c.IsApprovedByAdmin,
+                    IsBlocked = c.IsBlocked
                 })
                 .ToListAsync();
 
@@ -51,7 +60,16 @@ namespace HandyManBE.Controller
                     FirstName = c.FirstName,
                     LastName = c.LastName,
                     Email = c.Email,
-                    PhoneNumber = c.PhoneNumber
+                    PhoneNumber = c.PhoneNumber,
+                    ProfileImageUrl = c.ProfileImageUrl,
+                    Bio = c.Bio,
+                    SkillsCsv = c.SkillsCsv,
+                    IsEmailVerified = c.IsEmailVerified,
+                    IsPhoneVerified = c.IsPhoneVerified,
+                    IdVerificationStatus = c.IdVerificationStatus,
+                    RequiresAdminPreApproval = c.RequiresAdminPreApproval,
+                    IsApprovedByAdmin = c.IsApprovedByAdmin,
+                    IsBlocked = c.IsBlocked
                 })
                 .FirstOrDefaultAsync();
 
@@ -77,6 +95,11 @@ namespace HandyManBE.Controller
                 LastName = customer.LastName,
                 Email = customer.Email,
                 PhoneNumber = customer.PhoneNumber,
+                ProfileImageUrl = customer.ProfileImageUrl,
+                Bio = customer.Bio,
+                SkillsCsv = customer.SkillsCsv,
+                RequiresAdminPreApproval = customer.RequiresAdminPreApproval,
+                IsApprovedByAdmin = !customer.RequiresAdminPreApproval,
                 Password = HashPassword(customer.Password)
             };
 
@@ -97,7 +120,16 @@ namespace HandyManBE.Controller
                 FirstName = entity.FirstName,
                 LastName = entity.LastName,
                 Email = entity.Email,
-                PhoneNumber = entity.PhoneNumber
+                PhoneNumber = entity.PhoneNumber,
+                ProfileImageUrl = entity.ProfileImageUrl,
+                Bio = entity.Bio,
+                SkillsCsv = entity.SkillsCsv,
+                IsEmailVerified = entity.IsEmailVerified,
+                IsPhoneVerified = entity.IsPhoneVerified,
+                IdVerificationStatus = entity.IdVerificationStatus,
+                RequiresAdminPreApproval = entity.RequiresAdminPreApproval,
+                IsApprovedByAdmin = entity.IsApprovedByAdmin,
+                IsBlocked = entity.IsBlocked
             });
         }
 
@@ -114,6 +146,14 @@ namespace HandyManBE.Controller
             entity.LastName = customer.LastName;
             entity.Email = customer.Email;
             entity.PhoneNumber = customer.PhoneNumber;
+            entity.ProfileImageUrl = customer.ProfileImageUrl;
+            entity.Bio = customer.Bio;
+            entity.SkillsCsv = customer.SkillsCsv;
+            entity.RequiresAdminPreApproval = customer.RequiresAdminPreApproval;
+            if (customer.RequiresAdminPreApproval)
+            {
+                entity.IsApprovedByAdmin = false;
+            }
 
             if (!string.IsNullOrWhiteSpace(customer.Password))
             {

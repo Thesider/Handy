@@ -1,9 +1,10 @@
+using Enums;
+
 namespace BussinessObject
 {
     public class Worker
     {
         public int WorkerId { get; set; }
-        public int YearsOfExperience { get; set; } = 0;
         public bool IsAvailable { get; set; } = false;
         public decimal HourlyRate { get; set; }
         public decimal Rating { get; set; }
@@ -13,6 +14,17 @@ namespace BussinessObject
         public byte[] Password { get; set; }
         public Address Address { get; set; }
         public string PhoneNumber { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        public string? ProfileImageUrl { get; set; }
+        public string? Bio { get; set; }
+        public string? SkillsCsv { get; set; }
+        public bool IsEmailVerified { get; set; }
+        public bool IsPhoneVerified { get; set; }
+        public VerificationStatus IdVerificationStatus { get; set; } = VerificationStatus.Unverified;
+        public bool RequiresAdminPreApproval { get; set; }
+        public bool IsApprovedByAdmin { get; set; } = true;
+        public bool IsBlocked { get; set; }
         public virtual ICollection<WorkerService> WorkerServices { get; set; } = new List<WorkerService>();
         public int? WorkerProfileId { get; set; }
         public virtual WorkerProfile WorkerProfile { get; set; }

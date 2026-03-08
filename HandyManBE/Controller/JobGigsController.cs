@@ -1,8 +1,12 @@
 using BussinessObject;
 using Enums;
+using HandyManBE.Data;
 using HandyManBE.DTOs;
+using HandyManBE.Hubs;
 using HandyManBE.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,10 +18,25 @@ namespace HandyManBE.Controller
     public class JobGigsController : ControllerBase
     {
         private readonly IJobGigService _jobGigService;
+        private readonly ApplicationDbContext _dbContext;
+        private readonly IHubContext<MarketplaceHub> _hubContext;
 
-        public JobGigsController(IJobGigService jobGigService)
+        public JobGigsController(IJobGigService jobGigService, ApplicationDbContext dbContext, IHubContext<MarketplaceHub> hubContext)
         {
             _jobGigService = jobGigService;
+            _dbContext = dbContext;
+            _hubContext = hubContext;
+        }
+
+        [HttpGet("micro-job-templates")]
+        public IActionResult GetMicroJobTemplates()
+        {
+            return Ok(new[]
+            {
+                "moving",
+                "assembly",
+                "tutoring"
+            });
         }
 
         [HttpGet]
@@ -68,12 +87,22 @@ namespace HandyManBE.Controller
                     return BadRequest(new { error = "CustomerId is required" });
                 }
 
+                if (dto.IsMicroJob && (dto.EstimatedHours < 1 || dto.EstimatedHours > 4))
+                {
+                    return BadRequest(new { error = "Micro-jobs must be between 1 and 4 hours." });
+                }
+
+                if (dto.Price < 0)
+                {
+                    return BadRequest(new { error = "Price must be >= 0." });
+                }
+
                 Console.WriteLine($"Creating job gig - Title: {dto.Title}, Work Location: {dto.Address.Street}, {dto.Address.City}");
 
                 var created = await _jobGigService.CreateAsync(DtoMapper.ToEntity(dto));
-                
+
                 Console.WriteLine($"Job gig created successfully with ID: {created.JobGigId}");
-                
+
                 // Re-fetch to include customer info
                 var result = await _jobGigService.GetByIdAsync(created.JobGigId);
                 return CreatedAtAction(nameof(GetById), new { id = result.JobGigId }, DtoMapper.ToDto(result));
@@ -84,13 +113,13 @@ namespace HandyManBE.Controller
                 Console.WriteLine($"Database error creating job gig: {dbEx.Message}");
                 Console.WriteLine($"Inner exception: {dbEx.InnerException?.Message}");
                 Console.WriteLine($"Stack trace: {dbEx.StackTrace}");
-                
+
                 var errorMessage = dbEx.InnerException?.Message ?? dbEx.Message;
                 if (errorMessage.Contains("FK_") || errorMessage.Contains("FOREIGN KEY"))
                 {
                     return BadRequest(new { error = "Invalid CustomerId or ServiceId. Please ensure the customer and service exist." });
                 }
-                
+
                 return StatusCode(500, new { error = "Database error occurred", details = errorMessage });
             }
             catch (Exception ex)
@@ -106,8 +135,54 @@ namespace HandyManBE.Controller
         [HttpPost("bids")]
         public async Task<ActionResult<BidDto>> AddBid(BidCreateDto dto)
         {
+            if (dto.ResponseType == WorkerResponseType.Accept && dto.Amount <= 0)
+            {
+                return BadRequest(new { error = "Accept response requires a valid amount." });
+            }
+
             var created = await _jobGigService.AddBidAsync(DtoMapper.ToEntity(dto));
-            return Ok(DtoMapper.ToDto(created));
+            var createdDto = DtoMapper.ToDto(created);
+
+            var gig = await _dbContext.JobGigs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(g => g.JobGigId == created.JobGigId);
+
+            if (gig != null)
+            {
+                var payload = new
+                {
+                    jobGigId = gig.JobGigId,
+                    response = createdDto,
+                    eventType = "worker-response"
+                };
+
+                await _hubContext.Clients.Group($"user-{gig.CustomerId}").SendAsync("JobGigEvent", payload);
+                await _hubContext.Clients.Group($"user-{created.WorkerId}").SendAsync("JobGigEvent", payload);
+
+                var verb = createdDto.ResponseType switch
+                {
+                    WorkerResponseType.Accept => "accepted",
+                    WorkerResponseType.AskQuestion => "asked a question",
+                    _ => "sent an offer"
+                };
+
+                await _hubContext.Clients.Group($"user-{gig.CustomerId}").SendAsync("UserAlert", new
+                {
+                    title = "Worker response",
+                    message = $"A worker {verb} on your job '{gig.Title}'.",
+                    alertType = "worker-response",
+                    meta = new { jobGigId = gig.JobGigId, responseType = createdDto.ResponseType.ToString() },
+                    createdAt = DateTimeOffset.UtcNow
+                });
+            }
+
+            return Ok(createdDto);
+        }
+
+        [HttpPost("responses")]
+        public Task<ActionResult<BidDto>> AddResponse(BidCreateDto dto)
+        {
+            return AddBid(dto);
         }
 
         [HttpPut("{id:int}/accept-bid/{bidId:int}")]

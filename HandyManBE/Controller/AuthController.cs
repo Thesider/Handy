@@ -26,19 +26,25 @@ namespace HandyManBE.Controller
             _passwordHasher = passwordHasher;
         }
 
+        [HttpGet("onboarding/roles")]
+        public IActionResult GetOnboardingRoles()
+        {
+            return Ok(new[] { "Customer", "Worker" });
+        }
+
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponseDto>> Login(LoginRequestDto request)
         {
             var email = request.Email.Trim().ToLowerInvariant();
 
             var customer = await _dbContext.Customers.FirstOrDefaultAsync(c => c.Email.ToLower() == email);
-            if (customer != null && VerifyPassword(customer.Password, request.Password))
+            if (customer != null && !customer.IsBlocked && (!customer.RequiresAdminPreApproval || customer.IsApprovedByAdmin) && VerifyPassword(customer.Password, request.Password))
             {
                 return Ok(BuildResponse(customer.CustomerId, customer.Email, "Customer", $"{customer.FirstName} {customer.LastName}"));
             }
 
             var worker = await _dbContext.Workers.FirstOrDefaultAsync(w => w.Email.ToLower() == email);
-            if (worker != null && VerifyPassword(worker.Password, request.Password))
+            if (worker != null && !worker.IsBlocked && (!worker.RequiresAdminPreApproval || worker.IsApprovedByAdmin) && VerifyPassword(worker.Password, request.Password))
             {
                 return Ok(BuildResponse(worker.WorkerId, worker.Email, "Worker", $"{worker.FirstName} {worker.LastName}"));
             }
@@ -66,6 +72,13 @@ namespace HandyManBE.Controller
                 LastName = request.LastName,
                 Email = request.Email,
                 PhoneNumber = request.PhoneNumber,
+                ProfileImageUrl = request.Profile?.PhotoUrl,
+                Bio = request.Profile?.ShortBio,
+                SkillsCsv = request.Profile?.Skills == null ? null : string.Join(',', request.Profile.Skills.Take(3)),
+                IsEmailVerified = false,
+                IsPhoneVerified = false,
+                RequiresAdminPreApproval = request.RequiresAdminPreApproval,
+                IsApprovedByAdmin = !request.RequiresAdminPreApproval,
                 Password = HashPassword(request.Password)
             };
 
@@ -89,7 +102,6 @@ namespace HandyManBE.Controller
                 LastName = request.LastName,
                 Email = request.Email,
                 PhoneNumber = request.PhoneNumber,
-                YearsOfExperience = request.YearsOfExperience,
                 HourlyRate = request.HourlyRate,
                 IsAvailable = false,
                 Rating = 0,
@@ -101,6 +113,13 @@ namespace HandyManBE.Controller
                     PostalCode = request.Address.PostalCode,
                     Country = request.Address.Country ?? string.Empty
                 },
+                ProfileImageUrl = request.Profile?.PhotoUrl,
+                Bio = request.Profile?.ShortBio,
+                SkillsCsv = request.Profile?.Skills == null ? null : string.Join(',', request.Profile.Skills.Take(3)),
+                IsEmailVerified = false,
+                IsPhoneVerified = false,
+                RequiresAdminPreApproval = request.RequiresAdminPreApproval,
+                IsApprovedByAdmin = !request.RequiresAdminPreApproval,
                 Password = HashPassword(request.Password)
             };
 
@@ -108,6 +127,58 @@ namespace HandyManBE.Controller
             await _dbContext.SaveChangesAsync();
 
             return Ok(BuildResponse(worker.WorkerId, worker.Email, "Worker", $"{worker.FirstName} {worker.LastName}"));
+        }
+
+        [HttpPut("verify/customer/{customerId:int}")]
+        public async Task<IActionResult> VerifyCustomerContact(int customerId, VerifyContactRequestDto dto)
+        {
+            var customer = await _dbContext.Customers.FirstOrDefaultAsync(x => x.CustomerId == customerId);
+            if (customer == null)
+            {
+                return NotFound();
+            }
+
+            if (dto.Method.Equals("email", StringComparison.OrdinalIgnoreCase))
+            {
+                customer.IsEmailVerified = dto.Verified;
+            }
+            else if (dto.Method.Equals("phone", StringComparison.OrdinalIgnoreCase))
+            {
+                customer.IsPhoneVerified = dto.Verified;
+            }
+            else
+            {
+                return BadRequest(new { message = "Method must be 'email' or 'phone'." });
+            }
+
+            await _dbContext.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpPut("verify/worker/{workerId:int}")]
+        public async Task<IActionResult> VerifyWorkerContact(int workerId, VerifyContactRequestDto dto)
+        {
+            var worker = await _dbContext.Workers.FirstOrDefaultAsync(x => x.WorkerId == workerId);
+            if (worker == null)
+            {
+                return NotFound();
+            }
+
+            if (dto.Method.Equals("email", StringComparison.OrdinalIgnoreCase))
+            {
+                worker.IsEmailVerified = dto.Verified;
+            }
+            else if (dto.Method.Equals("phone", StringComparison.OrdinalIgnoreCase))
+            {
+                worker.IsPhoneVerified = dto.Verified;
+            }
+            else
+            {
+                return BadRequest(new { message = "Method must be 'email' or 'phone'." });
+            }
+
+            await _dbContext.SaveChangesAsync();
+            return NoContent();
         }
 
         private async Task<bool> EmailExists(string email)

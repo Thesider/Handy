@@ -1,4 +1,5 @@
 using System;
+using Enums;
 
 namespace BussinessObject
 {
@@ -9,6 +10,9 @@ namespace BussinessObject
         public int WorkerId { get; set; }
         public decimal Amount { get; set; }
         public string Message { get; set; }
+        public WorkerResponseType ResponseType { get; set; } = WorkerResponseType.Offer;
+        public int? EstimatedArrivalMinutes { get; set; }
+        public decimal? EstimatedDurationHours { get; set; }
         public bool IsAccepted { get; set; } = false;
         public DateTime CreatedAtUtc { get; set; }
 

@@ -2,6 +2,18 @@ using System.ComponentModel.DataAnnotations;
 
 namespace HandyManBE.DTOs
 {
+    public class QuickProfileDto
+    {
+        [StringLength(1000)]
+        public string? PhotoUrl { get; set; }
+
+        [StringLength(500)]
+        public string? ShortBio { get; set; }
+
+        [MaxLength(3)]
+        public List<string>? Skills { get; set; }
+    }
+
     public class LoginRequestDto
     {
         [Required]
@@ -33,6 +45,9 @@ namespace HandyManBE.DTOs
         [Required]
         [StringLength(200)]
         public string Password { get; set; }
+
+        public QuickProfileDto? Profile { get; set; }
+        public bool RequiresAdminPreApproval { get; set; }
     }
 
     public class RegisterWorkerRequestDto
@@ -52,10 +67,6 @@ namespace HandyManBE.DTOs
         [Required]
         [Phone]
         public string PhoneNumber { get; set; }
-
-        [Range(0, 100)]
-        public int YearsOfExperience { get; set; }
-
         [Range(0, 1000000)]
         public decimal HourlyRate { get; set; }
 
@@ -65,6 +76,18 @@ namespace HandyManBE.DTOs
         [Required]
         [StringLength(200)]
         public string Password { get; set; }
+
+        public QuickProfileDto? Profile { get; set; }
+        public bool RequiresAdminPreApproval { get; set; }
+    }
+
+    public class VerifyContactRequestDto
+    {
+        [Required]
+        public string Method { get; set; } = string.Empty;
+
+        [Required]
+        public bool Verified { get; set; }
     }
 
     public class AuthUserDto

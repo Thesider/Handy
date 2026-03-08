@@ -13,6 +13,13 @@ namespace BussinessObject
         public int ServiceId { get; set; }
         public int CustomerId { get; set; }
         public virtual Address Address { get; set; } = new Address();
+        public bool IsRemote { get; set; }
+        public DateTimeOffset? PreferredStartAt { get; set; }
+        public DateTimeOffset? PreferredEndAt { get; set; }
+        public decimal Price { get; set; }
+        public bool IsMicroJob { get; set; }
+        public string? MicroJobTemplate { get; set; }
+        public int EstimatedHours { get; set; } = 1;
         public JobGigStatus Status { get; set; }
         public DateTime CreatedAtUtc { get; set; }
         public int NumWorkersRequired { get; set; } = 1;
@@ -23,6 +30,6 @@ namespace BussinessObject
         public virtual Service? Service { get; set; }
         public virtual ICollection<Bid> Bids { get; set; } = new List<Bid>();
 
-     
+
     }
 }

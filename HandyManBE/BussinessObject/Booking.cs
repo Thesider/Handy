@@ -9,8 +9,7 @@ namespace BussinessObject
         public int WorkerId { get; set; }
         public int ServiceId { get; set; }
 
-        public decimal MinPrice { get; set; }
-        public decimal MaxPrice { get; set; }
+        public decimal Price { get; set; }
 
         public DateTimeOffset StartAt { get; set; }
         public DateTimeOffset? EndAt { get; set; }
@@ -22,6 +21,9 @@ namespace BussinessObject
 
         public decimal Amount { get; set; }
         public string Notes { get; set; }
+        public Enums.PaymentStatus PaymentStatus { get; set; } = Enums.PaymentStatus.NotCaptured;
+        public DateTimeOffset? PaymentCapturedAt { get; set; }
+        public string? PaymentReference { get; set; }
 
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
         public DateTime? ModifiedAtUtc { get; set; }

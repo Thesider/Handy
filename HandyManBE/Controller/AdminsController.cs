@@ -1,4 +1,5 @@
 using System.Text;
+using BussinessObject;
 using HandyManBE.Data;
 using HandyManBE.DTOs;
 using Microsoft.AspNetCore.Identity;
@@ -79,6 +80,86 @@ namespace HandyManBE.Controller
         {
             var hashed = _passwordHasher.HashPassword(null, password);
             return Encoding.UTF8.GetBytes(hashed);
+        }
+
+        [HttpGet("moderation/users")]
+        public async Task<IActionResult> GetModerationUsers()
+        {
+            var workers = await _dbContext.Workers
+                .AsNoTracking()
+                .Select(w => new
+                {
+                    Role = "Worker",
+                    Id = w.WorkerId,
+                    Name = w.FirstName + " " + w.LastName,
+                    w.Email,
+                    w.IsBlocked,
+                    w.IsApprovedByAdmin,
+                    w.RequiresAdminPreApproval,
+                    w.IsEmailVerified,
+                    w.IsPhoneVerified,
+                    IdVerificationStatus = w.IdVerificationStatus.ToString()
+                })
+                .ToListAsync();
+
+            var customers = await _dbContext.Customers
+                .AsNoTracking()
+                .Select(c => new
+                {
+                    Role = "Customer",
+                    Id = c.CustomerId,
+                    Name = c.FirstName + " " + c.LastName,
+                    c.Email,
+                    c.IsBlocked,
+                    c.IsApprovedByAdmin,
+                    c.RequiresAdminPreApproval,
+                    c.IsEmailVerified,
+                    c.IsPhoneVerified,
+                    IdVerificationStatus = c.IdVerificationStatus.ToString()
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                workers,
+                customers
+            });
+        }
+
+        [HttpPut("moderation/worker/{workerId:int}")]
+        public async Task<IActionResult> UpdateWorkerModeration(int workerId, AdminUserModerationUpdateDto dto)
+        {
+            var worker = await _dbContext.Workers.FirstOrDefaultAsync(w => w.WorkerId == workerId);
+            if (worker == null)
+            {
+                return NotFound();
+            }
+
+            worker.IsBlocked = dto.IsBlocked;
+            worker.IsApprovedByAdmin = dto.IsApprovedByAdmin;
+            worker.IdVerificationStatus = dto.IdVerificationStatus;
+            worker.ModifiedAtUtc = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpPut("moderation/customer/{customerId:int}")]
+        public async Task<IActionResult> UpdateCustomerModeration(int customerId, AdminUserModerationUpdateDto dto)
+        {
+            var customer = await _dbContext.Customers.FirstOrDefaultAsync(c => c.CustomerId == customerId);
+            if (customer == null)
+            {
+                return NotFound();
+            }
+
+            customer.IsBlocked = dto.IsBlocked;
+            customer.IsApprovedByAdmin = dto.IsApprovedByAdmin;
+            customer.IdVerificationStatus = dto.IdVerificationStatus;
+            customer.ModifiedAtUtc = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
+
+            return NoContent();
         }
     }
 }

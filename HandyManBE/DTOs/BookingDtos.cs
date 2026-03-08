@@ -16,10 +16,7 @@ namespace HandyManBE.DTOs
         public int ServiceId { get; set; }
 
         [Range(0, 1000000000)]
-        public decimal MinPrice { get; set; }
-
-        [Range(0, 1000000000)]
-        public decimal MaxPrice { get; set; }
+        public decimal Price { get; set; }
 
         [Required]
         public DateTimeOffset StartAt { get; set; }
@@ -42,12 +39,24 @@ namespace HandyManBE.DTOs
         public int CustomerId { get; set; }
         public int WorkerId { get; set; }
         public int ServiceId { get; set; }
-        public decimal MinPrice { get; set; }
-        public decimal MaxPrice { get; set; }
+        public decimal Price { get; set; }
         public DateTimeOffset StartAt { get; set; }
         public DateTimeOffset? EndAt { get; set; }
         public BookingStatus Status { get; set; }
         public decimal Amount { get; set; }
         public string? Notes { get; set; }
+        public PaymentStatus PaymentStatus { get; set; }
+        public DateTimeOffset? PaymentCapturedAt { get; set; }
+        public string? PaymentReference { get; set; }
+    }
+
+    public class CapturePaymentDto
+    {
+        [Required]
+        [StringLength(200)]
+        public string PaymentReference { get; set; } = string.Empty;
+
+        [Range(0.01, 1000000000)]
+        public decimal FinalAmount { get; set; }
     }
 }

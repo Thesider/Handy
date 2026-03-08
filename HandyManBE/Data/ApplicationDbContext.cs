@@ -21,6 +21,8 @@ namespace HandyManBE.Data
         public DbSet<Admin> Admins { get; set; }
         public DbSet<JobGig> JobGigs { get; set; }
         public DbSet<Bid> Bids { get; set; }
+        public DbSet<WorkerAvailabilitySlot> WorkerAvailabilitySlots { get; set; }
+        public DbSet<BookingMessage> BookingMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -31,6 +33,8 @@ namespace HandyManBE.Data
                 entity.HasKey(w => w.WorkerId);
                 entity.Property(w => w.HourlyRate).HasColumnType("decimal(18,2)");
                 entity.Property(w => w.Rating).HasColumnType("decimal(3,2)");
+                entity.Property(w => w.Latitude).HasColumnType("decimal(9,6)");
+                entity.Property(w => w.Longitude).HasColumnType("decimal(9,6)");
                 entity.HasIndex(w => w.Email).IsUnique();
 
                 entity.OwnsOne(w => w.Address);
@@ -76,14 +80,17 @@ namespace HandyManBE.Data
             modelBuilder.Entity<Review>(entity =>
             {
                 entity.HasKey(r => r.ReviewId);
+                entity.HasOne(r => r.Booking)
+                    .WithMany()
+                    .HasForeignKey(r => r.BookingId)
+                    .OnDelete(DeleteBehavior.NoAction);
             });
 
             modelBuilder.Entity<Booking>(entity =>
             {
                 entity.HasKey(b => b.BookingId);
                 entity.Property(b => b.Amount).HasColumnType("decimal(18,2)");
-                entity.Property(b => b.MinPrice).HasColumnType("decimal(18,2)");
-                entity.Property(b => b.MaxPrice).HasColumnType("decimal(18,2)");
+                entity.Property(b => b.Price).HasColumnType("decimal(18,2)");
                 entity.Property(b => b.RowVersion).IsRowVersion();
             });
 
@@ -98,6 +105,7 @@ namespace HandyManBE.Data
             {
                 entity.HasKey(jg => jg.JobGigId);
                 entity.Property(jg => jg.Budget).HasColumnType("decimal(18,2)");
+                entity.Property(jg => jg.Price).HasColumnType("decimal(18,2)");
                 entity.HasOne(jg => jg.Customer)
                     .WithMany()
                     .HasForeignKey(jg => jg.CustomerId);
@@ -111,12 +119,31 @@ namespace HandyManBE.Data
             {
                 entity.HasKey(b => b.BidId);
                 entity.Property(b => b.Amount).HasColumnType("decimal(18,2)");
+                entity.Property(b => b.EstimatedDurationHours).HasColumnType("decimal(5,2)");
                 entity.HasOne(b => b.JobGig)
                     .WithMany(jg => jg.Bids)
                     .HasForeignKey(b => b.JobGigId);
                 entity.HasOne(b => b.Worker)
                     .WithMany()
                     .HasForeignKey(b => b.WorkerId);
+            });
+
+            modelBuilder.Entity<WorkerAvailabilitySlot>(entity =>
+            {
+                entity.HasKey(s => s.WorkerAvailabilitySlotId);
+                entity.HasOne(s => s.Worker)
+                    .WithMany()
+                    .HasForeignKey(s => s.WorkerId);
+            });
+
+            modelBuilder.Entity<BookingMessage>(entity =>
+            {
+                entity.HasKey(m => m.BookingMessageId);
+                entity.Property(m => m.Text).HasMaxLength(2000);
+                entity.HasOne(m => m.Booking)
+                    .WithMany()
+                    .HasForeignKey(m => m.BookingId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Seed data
@@ -145,11 +172,10 @@ namespace HandyManBE.Data
                     LastName = "Doe",
                     Email = "john.doe@handyman.local",
                     PhoneNumber = "+1-555-0101",
-                    YearsOfExperience = 5,
                     IsAvailable = true,
                     HourlyRate = 20m,
                     Rating = 4.5m,
-                    Password = new byte[] { 1, 2, 3 },
+                    Password = Encoding.UTF8.GetBytes("worker1234"),
                     CreatedAtUtc = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 },
                 new Worker
@@ -159,11 +185,10 @@ namespace HandyManBE.Data
                     LastName = "Smith",
                     Email = "jane.smith@handyman.local",
                     PhoneNumber = "+1-555-0102",
-                    YearsOfExperience = 8,
                     IsAvailable = false,
                     HourlyRate = 28m,
                     Rating = 4.8m,
-                    Password = new byte[] { 4, 5, 6 },
+                    Password = Encoding.UTF8.GetBytes("worker1234"),
                     CreatedAtUtc = new DateTime(2025, 1, 2, 0, 0, 0, DateTimeKind.Utc)
                 }
             );
@@ -213,9 +238,45 @@ namespace HandyManBE.Data
                     FirstName = "System",
                     LastName = "Administrator",
                     Email = "admin@handyman.local",
-                    Password = Encoding.UTF8.GetBytes("Admin@123"),
+                    Password = Encoding.UTF8.GetBytes("admin"),
                     IsActive = true,
                     CreatedAtUtc = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                }
+            );
+
+            // Seed a sample customer with known password for testing
+            modelBuilder.Entity<Customer>().HasData(
+                new Customer
+                {
+                    CustomerId = 1,
+                    FirstName = "Test",
+                    LastName = "User",
+                    Email = "user@handyman.local",
+                    PhoneNumber = "+1-555-0199",
+                    Password = Encoding.UTF8.GetBytes("testuser1234"),
+                    CreatedAtUtc = new DateTime(2025, 1, 3, 0, 0, 0, DateTimeKind.Utc)
+                }
+            );
+
+            // Seed some short, generic reviews
+            modelBuilder.Entity<Review>().HasData(
+                new Review
+                {
+                    ReviewId = 1,
+                    Rating = 3,
+                    Comment = "dịch vụ thuê ổn",
+                    CustomerId = 1,
+                    WorkerId = 1,
+                    CreatedAtUtc = new DateTime(2025, 2, 1, 0, 0, 0, DateTimeKind.Utc)
+                },
+                new Review
+                {
+                    ReviewId = 2,
+                    Rating = 3,
+                    Comment = "tạm được",
+                    CustomerId = 1,
+                    WorkerId = 2,
+                    CreatedAtUtc = new DateTime(2025, 2, 2, 0, 0, 0, DateTimeKind.Utc)
                 }
             );
         }
